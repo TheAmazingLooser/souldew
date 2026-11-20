@@ -2,7 +2,7 @@
 
 `npm run release` takes the release notes from the section of the version being released.
 
-## Unreleased
+## 3.1.0
 
 - **Five players.** A SoulLink or Play together now takes up to five players: the new-run wizards offer 2 to 5, the
   board, the routes, the sidebar, the dock and the overlays make room for a fifth column, and player 5 has a colour of

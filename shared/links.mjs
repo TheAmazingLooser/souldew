@@ -6,7 +6,9 @@ export const LINKS = {
   membership: 'https://buymeacoffee.com/souldew/membership',
   github: 'https://github.com/souldewapp/souldew',
   issues: 'https://github.com/souldewapp/souldew/issues/new/choose',
-  releases: 'https://github.com/souldewapp/souldew/releases',
+  // where this build's releases are published – the download page for installs that can't update themselves (.deb,
+  // unpacked builds); the same repository as package.json → updates.repo
+  releases: 'https://github.com/TheAmazingLooser/souldew/releases',
   streamApiDocs: 'https://github.com/souldewapp/souldew/blob/main/docs/STREAM_API.md',
   // what the anonymous "playing now" count sends (Settings › General): the privacy page (German, with an English line)
   // and docs/PRIVACY.md (English, the exact request)

@@ -1,6 +1,6 @@
 {
   "name": "souldew",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "description": "souldew – Pokémon SoulLinks (2–5 players) and Nuzlockes with a built-in emulator, live sync and a game library",
   "license": "GPL-3.0-or-later",
@@ -31,9 +31,9 @@
     "matrix": "node scripts/rom-matrix.mjs --live"
   },
   "updates": {
-    "repo": "souldewapp/souldew",
+    "repo": "TheAmazingLooser/souldew",
     "feed": "https://github.com/{repo}/releases/latest/download/latest.json",
-    "publicKey": "MCowBQYDK2VwAyEANG4Ng/ROJT1UWYJ0XQ0k3ZfY3mYKKmiiF0tunuAzlBA="
+    "publicKey": "MCowBQYDK2VwAyEA2iq+iUynIM9BvMnwM55icm7IEK3grs9/E3vgvUUsk40="
   },
   "engines": {
     "node": ">=22.15"
