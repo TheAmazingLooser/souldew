@@ -55,6 +55,15 @@ function mkDoc(by, runId = 't') {
   return d;
 }
 const settle = () => new Promise((r) => setTimeout(r, 30));
+/**
+ * Waits until `done()` holds – at most 100 settles (3 s). For what arrives after an asynchronous check (the guard
+ * verifies the host's signature through the local server): one fixed settle is too short on a busy CI runner.
+ *
+ * @param {() => boolean} done the condition the test is about to assert
+ */
+const settleUntil = async (done) => {
+  for (let i = 0; i < 100 && !done(); i++) await settle();
+};
 
 // ---- every rule, in the wizard and on the board ------------------------------------------------------------------
 
@@ -553,7 +562,7 @@ test('a run from before 2.8.2: its creator becomes the host, the rules stay as t
     WH.setupHostRules(partner, imported, { me: 'p2' });
     assert.equal(partner.hostKey, null);
     partner.merge(host.entries);
-    await settle();
+    await settleUntil(() => partner.hostKey === m.hostKey);
     assert.equal(partner.hostKey, m.hostKey);
     assert.deepEqual(metaCalls, [[`/api/runs/${built.id}/meta`, { hostKey: m.hostKey, host: 'p1' }]], 'stored in the partner’s run');
     assert.deepEqual(H.unsigned(partner.get('rules')), docRules);
@@ -568,7 +577,7 @@ test('a run from before 2.8.2: its creator becomes the host, the rules stay as t
     partnerSide = false;
     await WH.writeHostRules(host, m, { ...docRules, dupes: 'player' }, 'p1');
     partner.merge(host.entries);
-    await settle();
+    await settleUntil(() => R.rules(partner, imported).dupes === 'player');
     assert.equal(R.rules(partner, imported).dupes, 'player');
 
     // a solo Nuzlocke from before: nothing changes
