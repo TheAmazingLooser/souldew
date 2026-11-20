@@ -1,5 +1,5 @@
 // "Play together" (shared/playtogether.mjs): the new-run page, the join step and the board of a run in mode
-// 'together' – 2–4 players in their own normal games, linked for trades, battles, Shared World and raids, without a
+// 'together' – 2–5 players in their own normal games, linked for trades, battles, Shared World and raids, without a
 // challenge. It lives in the SoulLink section (route `soullink`): `?together` starts one (with `&rom=` a library game),
 // a Play together's `?run=` shows TogetherBoard instead of the SoulLink board.
 import { html, useState } from '/vendor/htm-preact.mjs';
@@ -9,7 +9,7 @@ import { t, ago } from '../lib/i18n.mjs';
 import { api } from '../lib/api.mjs';
 import { buildLogText } from '../lib/errors.mjs';
 import { gameById, gameTitle, hackById } from '../lib/data.mjs';
-import { ALL_SLOTS, slotsOf, defaultRunName } from '/shared/slots.mjs';
+import { ALL_SLOTS, PLAYER_COUNTS, slotsOf, defaultRunName } from '/shared/slots.mjs';
 import { numberedName } from '/shared/restart.mjs';
 import { togetherDefaults, rulesWithDefaults } from '/shared/rules.mjs';
 import { hostSlotOf } from '/shared/hostrules.mjs';
@@ -74,7 +74,7 @@ export function NewTogether({ romPick = null }) {
   const [romId, setRomId] = useState(() => (usable.find((c) => c.rom.id === romPick) || usable[0])?.rom.id || null);
   const pick = usable.find((c) => c.rom.id === romId) || usable[0] || null;
   const [count, setCount] = useState(2);
-  const [names, setNames] = useState(() => ({ p1: status?.config?.playerName || '', p2: '', p3: '', p4: '' }));
+  const [names, setNames] = useState(() => ({ ...Object.fromEntries(ALL_SLOTS.map((s) => [s, ''])), p1: status?.config?.playerName || '' }));
   const [rules, setRules] = useState(togetherDefaults);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -135,7 +135,7 @@ export function NewTogether({ romPick = null }) {
     <section class="panel stack">
       <h2>${t('pt.step2', '2 · Who plays')}</h2>
       <div class="seg" role="radiogroup" aria-label=${t('pt.howMany', 'How many play')}>
-        ${[2, 3, 4].map((n) => html`<button role="radio" aria-checked=${count === n} class=${count === n ? 'on' : ''} onClick=${() => setCount(n)}>${t('pt.nPlayers', '{n} players', { n })}</button>`)}</div>
+        ${PLAYER_COUNTS.map((n) => html`<button role="radio" aria-checked=${count === n} class=${count === n ? 'on' : ''} onClick=${() => setCount(n)}>${t('pt.nPlayers', '{n} players', { n })}</button>`)}</div>
       <div class="grid-2">${slots.map((s, i) => html`<label class="field" key=${s}><span>${i === 0 ? t('new.you', 'You') : t('new.playerN', 'Player {n}', { n: i + 1 })}</span>
         <input type="text" maxLength="40" value=${names[s]} placeholder=${i === 0 ? t('new.yourName', 'Your name') : t('pt.friendName', 'Their name (they can change it)')}
           onInput=${(e) => setNames({ ...names, [s]: e.target.value })} /></label>`)}</div>

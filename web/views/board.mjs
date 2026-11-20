@@ -340,7 +340,7 @@ export function InviteBody({ manifest, heading = true, autoFriends = [] }) {
   </div>`;
 }
 
-// One SoulLink pair as two party-menu panels (your mon | partner's mon) joined by a strand. Three or four players:
+// One SoulLink pair as two party-menu panels (your mon | partner's mon) joined by a strand. Three to five players:
 // the area with its strand on top, everybody's panel below it in the same columns as the head.
 function GroupRow({ area, mons, leads, onPick }) {
   const { doc, manifest, runData } = useApp();

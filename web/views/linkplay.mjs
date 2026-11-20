@@ -10,7 +10,7 @@ import { serverErrorText } from '../lib/errors.mjs';
 import { players as getPlayers, rules as getRules, slotsOf, isTogether, togetherGames } from '../lib/run.mjs';
 import { inviteBlock } from '/shared/playtogether.mjs';
 import { gameById, gameTitle } from '../lib/data.mjs';
-import { sameLinkSystem, LINK_SYSTEMS, linkUnavailable } from '/shared/link.mjs';
+import { sameLinkSystem, LINK_SYSTEMS, linkUnavailable, MAX_LINK_SEATS } from '/shared/link.mjs';
 import { wagerGame, battleFormats, moneyText, MONEY_MAX } from '/shared/linkbattle.mjs';
 import { useTogether } from '../lib/together.mjs';
 import { wagerRules, agreedWager, sessionsIn, outcomeOf, headToHead, wagerStatus } from '../lib/wager.mjs';
@@ -203,8 +203,9 @@ export function HeadToHead({ slot }) {
 }
 
 /**
- * With three or four players: one invite for everybody online (Gen 3 multi battles need four linked games, the DS
- * Union Room takes all of them).
+ * With three or more players: one invite for everybody online (Gen 3 multi battles need four linked games, the DS
+ * Union Room takes all of them). A link holds at most MAX_LINK_SEATS games – the consoles' own limit – so in a run of
+ * five the first three partners who are ready join this one, and the fifth player links in the next.
  */
 export function LinkGroupButton() {
   const { doc, manifest, me, onlineSlots, linkSessions, linkPlay, linkStatus, toast, link } = useApp();
@@ -214,7 +215,8 @@ export function LinkGroupButton() {
   const slots = manifest ? slotsOf(manifest) : [];
   if (!linkSessions || slots.length < 3 || linkUnavailable(manifest?.game) || !linkAllowed(doc, manifest, 'battle')) return null;
   // (a player linked with others right now waits for the next one; one on an older souldew can't take part)
-  const ready = slots.filter((s) => s !== me && onlineSlots?.has?.(s) && linkStatus?.partners?.[s]?.p2p && !linkSessions.linkedElsewhere?.(s) && !together?.olderApp(s));
+  const ready = slots.filter((s) => s !== me && onlineSlots?.has?.(s) && linkStatus?.partners?.[s]?.p2p && !linkSessions.linkedElsewhere?.(s) && !together?.olderApp(s))
+    .slice(0, MAX_LINK_SEATS - 1);
   // (Play together: everybody's game must meet everybody else's – four Gen 3 games, four Gen 4 …)
   const groupWhy = ready.length >= 2 ? gamesWhy(doc, manifest, me, ready, 'battle', getPlayers(doc, manifest)) : null;
   const idle = !linkPlay || ['idle', 'ended', 'rejoinable'].includes(linkPlay.phase);
@@ -236,7 +238,7 @@ export function LinkGroupButton() {
     return html`<${BattleSetup} names=${ready.map((s) => names[s]?.name || s)} seats=${4} onCancel=${() => setSetup(false)} onSend=${(opts) => go(opts)} />`;
   }
   return html`<button class="btn small" disabled=${busy || !idle || ready.length < 2 || !!groupWhy}
-    title=${groupWhy || t('linkplay.groupHint', 'All of you in one link: multi battles (Gen 3: four players) and the Union Room')}
+    title=${groupWhy || t('linkplay.groupHint', 'Up to four of you in one link: multi battles (Gen 3: four players) and the Union Room')}
     onClick=${() => (multi ? setSetup(true) : go())}><${Icon} name="link" size=${14} />${t('linkplay.group', 'Link all of us ({n})', { n: ready.length + 1 })}</button>`;
 }
 

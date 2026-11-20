@@ -150,7 +150,7 @@ test('current run: the one open in the app while it exists, else the one played 
 
 test('widget size: one fixed box per widget and player count – the same for one Pokémon and six', () => {
   for (const w of WIDGETS) {
-    for (const n of [1, 2, 3, 4]) {
+    for (const n of [1, 2, 3, 4, 5]) {
       for (const layout of ['h', 'v']) {
         const [bw, bh] = overlaySize(w, n, { layout, nick: n <= 2, hp: true });
         assert.ok(Number.isInteger(bw) && Number.isInteger(bh) && bw >= 100 && bh >= 50 && bw <= 1920 && bh <= 1080, `${w} ${layout} ×${n}: ${bw}×${bh}`);
@@ -161,13 +161,16 @@ test('widget size: one fixed box per widget and player count – the same for on
   for (const w of ['team', 'counters', 'where', 'stats']) {
     for (const layout of ['h', 'v']) {
       const a = overlaySize(w, 1, { layout });
-      const b = overlaySize(w, 4, { layout });
+      const b = overlaySize(w, 5, { layout });
       assert.ok(b[0] >= a[0] && b[1] >= a[1], `${w} ${layout}`);
     }
   }
   assert.ok(overlaySize('team', 2, { nick: true }).at(1) > overlaySize('team', 2, { nick: false }).at(1));
   assert.ok(overlaySize('team', 2, { hp: true }).at(1) > overlaySize('team', 2, { hp: false }).at(1));
-  assert.deepEqual(overlaySize('team', 9), overlaySize('team', 4), 'at most four players');
+  assert.deepEqual(overlaySize('team', 9), overlaySize('team', 5), 'at most five players');
+  assert.notDeepEqual(overlaySize('team', 5), overlaySize('team', 4), 'a fifth player gets a row of their own');
+  assert.deepEqual(overlaySize('tv', 1), [1920, 1080], 'the TV overview is laid out for a 16:9 screen');
+  assert.deepEqual(overlaySize('tv', 5), overlaySize('tv', 1));
   assert.deepEqual(overlaySize('team', 0), overlaySize('team', 1));
 });
 
@@ -277,7 +280,7 @@ test('server: overlay snapshot, live push after a doc upload, test alerts and th
   }
 });
 
-test('overlay escaping covers quotes of both kinds and backticks; slots reach CSS only as p1–p4 (#26)', async () => {
+test('overlay escaping covers quotes of both kinds and backticks; slots reach CSS only as p1–p5 (#26)', async () => {
   const { escHtml, slotVar } = await import('../shared/overlay.mjs');
   assert.equal(escHtml(`<img src=x onerror="a">'b'\`c\`&`), '&lt;img src=x onerror=&quot;a&quot;&gt;&#39;b&#39;&#96;c&#96;&amp;');
   assert.equal(escHtml(null), '');
@@ -286,7 +289,8 @@ test('overlay escaping covers quotes of both kinds and backticks; slots reach CS
   const name = "x' onmouseover='alert(1)";
   assert.ok(!`<b title='${escHtml(name)}'>`.includes("' onmouseover"));
   assert.equal(slotVar('p3'), 'var(--p3)');
-  for (const bad of ['"x', 'p5', '', undefined, 'p1;color:red']) assert.equal(slotVar(bad), 'var(--p1)', String(bad));
+  assert.equal(slotVar('p5'), 'var(--p5)');
+  for (const bad of ['"x', 'p6', 'p0', '', undefined, 'p1;color:red']) assert.equal(slotVar(bad), 'var(--p1)', String(bad));
   // the page uses the shared helpers, no copy of its own
   const { readFileSync } = await import('node:fs');
   const page = readFileSync(new URL('../web/overlay.html', import.meta.url), 'utf8');

@@ -211,3 +211,15 @@ export function openExternal(url) {
   if (window.sls?.openExternal) window.sls.openExternal(url);
   else window.open(url, '_blank', 'noopener');
 }
+
+/**
+ * Opens one of the app's own overlay pages (the TV overview) in the system browser, where it can go full screen on a
+ * TV or a second monitor. The desktop app only lets its own /overlay page through (electron/guards.mjs appOverlayUrl);
+ * in a browser (`npm start`) it is a new tab.
+ *
+ * @param {string} url the overlay's address on this app's origin
+ */
+export function openOverlay(url) {
+  if (window.sls?.openOverlay) window.sls.openOverlay(url);
+  else window.open(url, '_blank', 'noopener');
+}

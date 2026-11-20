@@ -94,7 +94,7 @@ export function recordResult(doc, me, entry, store = browserStore()) {
 export function sessionsIn(doc) {
   const out = {};
   for (const [k, v] of Object.entries(doc?.scan?.('lb:') || {})) {
-    const m = k.match(/^([0-9a-f]{6,24}):(p[1-4])$/); // (scan gives the keys without the prefix)
+    const m = k.match(/^([0-9a-f]{6,24}):(p[1-5])$/); // (scan gives the keys without the prefix)
     if (m && v && typeof v === 'object') (out[m[1]] ||= {})[m[2]] = v;
   }
   return out;

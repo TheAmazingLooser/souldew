@@ -34,6 +34,28 @@ export function safeExternalUrl(url) {
 }
 
 /**
+ * The app's own overlay page (the TV overview) for shell.openExternal, or null. The overlay is plain http on this
+ * computer, which safeExternalUrl refuses; this lets exactly that page through – same origin as the app, path
+ * `/overlay`, no user info – so the system browser can show it full screen on a TV or a second monitor. Nothing else on
+ * the local server (the API, the run's files) can be opened this way.
+ *
+ * @param {string} url the address the page asks to open
+ * @param {string} appUrl the local server's address (e.g. http://localhost:47390)
+ * @returns {string|null} the normalized URL, or null when it is anything but the app's overlay page
+ */
+export function appOverlayUrl(url, appUrl) {
+  if (typeof url !== 'string' || url.length > 4096 || !sameOrigin(url, appUrl)) return null;
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  if (u.username || u.password || u.pathname !== '/overlay' || u.hash) return null;
+  return u.href;
+}
+
+/**
  * The sign-in page of the souldew accounts service for shell.openExternal, or null: https without user info, or – for a
  * development service on this computer (SLS_ACCOUNTS_URL) – http on 127.0.0.1 / localhost / [::1]. Only the local
  * server's account module asks for this, with the address it built itself.

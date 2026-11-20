@@ -856,7 +856,10 @@ test('video bitrate per watcher: full for one or two, shared beyond, never below
   assert.equal(videoBitrate(1), 400000);
   assert.equal(videoBitrate(2), 400000);
   assert.equal(videoBitrate(3), 300000);
-  assert.equal(videoBitrate(10), 250000);
+  // four watchers (a five-player run, everyone watching everyone) share the same upload as three
+  assert.equal(videoBitrate(4), 225000);
+  assert.ok(4 * videoBitrate(4) <= 900000, 'never above the budget with five players');
+  assert.equal(videoBitrate(10), 225000);
   assert.equal(videoBitrate(0), 400000);
   // the senders' encodings follow the number of watchers' peers
   const link = new SyncLink({ room: 'r', secret: 's', slot: 'p1', doc: mkDoc('p1') });

@@ -161,7 +161,7 @@ function teamOf(doc, slot, me, mine) {
 
 /**
  * Linked groups side by side: one column per player, one row per area that is in anybody's team. Two players keep
- * the pair look (mon | link | mon); three or four get a compact row per area (area + link state over N small cells).
+ * the pair look (mon | link | mon); three to five get a compact row per area (area + link state over N small cells).
  * A solo Nuzlocke has nobody to link with – it shows the team list instead.
  * `mine` is the freshest own party read from RAM (HP changes every frame there).
  */
@@ -210,7 +210,7 @@ export function LinkedPairs({ mine, gen, compact }) {
   </section>`;
 }
 
-/** One player's mon in a 3–4 player group row: sprite, level and HP – the name is in the tooltip (the column is narrow). */
+/** One player's mon in a 3–5 player group row: sprite, level and HP – the name is in the tooltip (the column is narrow). */
 function GroupMon({ slot, name, mon, enc, dead, gen }) {
   const species = mon?.species || caughtSpecies(enc);
   const nick = species ? mon?.nick || enc?.nickname || speciesName(species) : '';
@@ -331,7 +331,7 @@ function MemberBody({ m, gen }) {
 }
 
 /**
- * The linked groups for the bottom dock (2–4 players): every group in the game's order, readable at a glance – the
+ * The linked groups for the bottom dock (2–5 players): every group in the game's order, readable at a glance – the
  * area, each player's Pokémon in the player's colour, the link between them and how each one is doing.
  */
 export function GroupTrack({ mine, gen, here }) {

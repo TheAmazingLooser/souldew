@@ -67,9 +67,9 @@ test('the picture keeps its aspect and fits the room the dock and the game bar l
   assert.ok(f.h <= a.h - FOLDED - DOCK_GAP - BAR_H && f.w >= b.w);
   assert.deepEqual(fit(0, 100, 1), { w: 0, h: 0 });
   assert.deepEqual(fit(400, 300, 4 / 3), { w: 400, h: 300 });
-  // the bottom dock grows with the players, so a group of four stays readable
-  assert.ok(dockHeight(4) > dockHeight(3) && dockHeight(3) > dockHeight(2) && dockHeight(2) === dockHeight(1));
-  assert.equal(dockHeight(9), dockHeight(4));
+  // the bottom dock grows with the players, so a group of five stays readable
+  assert.ok(dockHeight(5) > dockHeight(4) && dockHeight(4) > dockHeight(3) && dockHeight(3) > dockHeight(2) && dockHeight(2) === dockHeight(1));
+  assert.equal(dockHeight(9), dockHeight(5));
 });
 
 test('before vs. after: the new layout never shrinks the picture of the old one (1440×900, 4 players)', () => {

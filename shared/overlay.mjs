@@ -6,10 +6,14 @@
 // ids, no spoiler data. The server pushes a fresh one whenever the run's doc changes.
 
 import { PROGRESSION } from './routes.mjs';
-import { slotsOf, runMode } from './slots.mjs';
+import { slotsOf, runMode, MAX_PLAYERS } from './slots.mjs';
 
 export const OVERLAY_FEED = 30; // newest log entries in a snapshot (alerts only need the latest ones)
-export const WIDGETS = ['team', 'card', 'counters', 'where', 'alerts', 'stats', 'popup'];
+/**
+ * The overlay page's widgets. `tv` is the full-screen overview for a television or a second screen: every player's
+ * team, place, battle and badges at once, the run's counts and its alerts – one page instead of a scene of widgets.
+ */
+export const WIDGETS = ['team', 'card', 'counters', 'where', 'alerts', 'stats', 'popup', 'tv'];
 /** The Pokémon a test alert may show beyond the run's own (Pikachu, Eevee → Umbreon, the killer Miltank). */
 export const TEST_SPECIES = [25, 133, 197, 241];
 const GEN = { gb: 1, sgb: 1, gbc: 2, gba: 3, nds: 4 };
@@ -45,7 +49,9 @@ const LITE = {
   }),
   'party:': (v) => (Array.isArray(v) ? v.slice(0, 6).map((a) => str(a, 60)) : []),
   'enc:': (v) => ({ outcome: str(v.outcome, 12), species: int(v.species), level: int(v.level), nickname: str(v.nickname), shiny: !!v.shiny }),
-  'pair:': (v) => ({ state: str(v.state, 12), diedAt: num(v.diedAt), level: int(v.level), ...(v.killer?.species ? { killer: { species: int(v.killer.species), level: int(v.killer.level), kind: str(v.killer.kind, 10) } } : {}) }),
+  // `by`: the player whose knock-out sent the group to the graveyard (the TV overview's deaths per player)
+  'pair:': (v) => ({ state: str(v.state, 12), diedAt: num(v.diedAt), level: int(v.level), ...(/^p[1-5]$/.test(v.by) ? { by: v.by } : {}),
+    ...(v.killer?.species ? { killer: { species: int(v.killer.species), level: int(v.killer.level), kind: str(v.killer.kind, 10) } } : {}) }),
   'where:': (v) => ({
     gen: int(v.gen), id: int(v.id), name: str(v.name, 40), at: num(v.at),
     ...(v.fight && typeof v.fight === 'object' ? { fight: { kind: str(v.fight.kind, 10), species: int(v.fight.species), level: int(v.fight.level) } } : {}),
@@ -141,8 +147,8 @@ export function overlaySnapshot(manifest, doc, { lang = 'en', speciesName = null
 const HTML_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' };
 export const escHtml = (s) => String(s ?? '').replace(/[&<>"'`]/g, (c) => HTML_ESC[c]);
 
-/** A player slot for CSS (`var(--p1)` …): anything but p1–p4 becomes p1. */
-export const slotVar = (slot) => `var(--${/^p[1-4]$/.test(slot) ? slot : 'p1'})`;
+/** A player slot for CSS (`var(--p1)` …): anything but p1–p5 becomes p1. */
+export const slotVar = (slot) => `var(--${/^p[1-5]$/.test(slot) ? slot : 'p1'})`;
 
 export const validLevel = (l) => (Number.isInteger(l) && l >= 1 && l <= 100 ? l : null);
 
@@ -240,6 +246,70 @@ export function countersOf(S) {
   return { alive, dead, caught, missed, encounters: areas.size, badges };
 }
 
+// ---- the TV overview (?w=tv) ---------------------------------------------------------------------------------
+
+/** A game counts as "playing" while it sent data this recently (the same window as the stream API's `live`). */
+export const TV_LIVE_MS = 10 * 60 * 1000;
+
+/**
+ * One player's column on the TV overview: their team (six places, free ones `null`), how many of it can still fight,
+ * their own encounter results and the deaths their knock-outs caused, badges, play time and where they are.
+ *
+ * @param {object} S the overlay snapshot (overlaySnapshot)
+ * @param {string} slot the player's slot (p1 … p5)
+ * @param {number} [now] the page's clock, for `live`
+ * @returns {{ slot: string, name: string, team: Array<object|null>, fit: number, members: number, caught: number,
+ *   missed: number, deaths: number, badges: number|null, playTime: string, where: object|null, live: boolean }}
+ */
+export function tvPlayerOf(S, slot, now = Date.now()) {
+  const doc = S?.doc || {};
+  const team = teamOf(S, slot);
+  let caught = 0, missed = 0, deaths = 0;
+  for (const [k, v] of Object.entries(doc)) {
+    if (k.startsWith('enc:') && k.endsWith(`:${slot}`)) {
+      if (v?.outcome === 'caught') caught++;
+      else if (v?.outcome === 'missed') missed++;
+    } else if (k.startsWith('pair:') && v?.state === 'dead' && v.by === slot) deaths++;
+  }
+  const live = doc[`live:${slot}`];
+  return {
+    slot, name: S?.players?.[slot]?.name || String(slot).toUpperCase(),
+    team: Array.from({ length: TEAM_SLOTS }, (_, i) => team[i] || null),
+    fit: team.filter((m) => !m.dead && m.status !== 'fnt').length, members: team.length,
+    caught, missed, deaths,
+    badges: Number.isInteger(live?.badges) ? live.badges : null,
+    playTime: playTimeText(live?.playTime),
+    where: doc[`where:${slot}`]?.name ? doc[`where:${slot}`] : null,
+    live: Number.isFinite(live?.at) && now - live.at < TV_LIVE_MS,
+  };
+}
+
+/** Log entries the TV overview's news line shows: what the alerts announce, newest first. */
+const TV_NEWS_TYPES = ['death', 'catch', 'badge', 'evolve'];
+
+/**
+ * The newest `n` log entries worth a line on the TV (deaths, catches, badges, evolutions), newest first – with the
+ * area's display name. Unlike alertsBetween this is a plain read of the snapshot: the TV shows the latest news even
+ * when it was switched on after they happened.
+ *
+ * @param {object} S the overlay snapshot
+ * @param {number} [n] how many entries at most
+ * @returns {Array<{ id: string, at: number|null, type: string, slot: string|null, area: string|null, label: string,
+ *   species: number|null, n?: number, from?: number, to?: number }>}
+ */
+export function tvNewsOf(S, n = 6) {
+  return Object.entries(S?.doc || {})
+    .filter(([k, v]) => k.startsWith('feed:') && TV_NEWS_TYPES.includes(v?.type))
+    .sort((a, b) => (b[1].at || 0) - (a[1].at || 0))
+    .slice(0, n)
+    .map(([k, f]) => ({
+      id: k, at: f.at ?? null, type: f.type, slot: f.slot || null, area: f.area || null,
+      label: f.area ? S.areas?.[f.area] || f.area : '',
+      species: f.species ?? (f.type === 'catch' && f.area && f.slot ? S.doc[`enc:${f.area}:${f.slot}`]?.species ?? null : null),
+      ...(Number.isInteger(f.n) ? { n: f.n } : {}), ...(f.type === 'evolve' ? { from: f.from, to: f.to } : {}),
+    }));
+}
+
 /** Feed entries the overlay announces, oldest first. */
 const ALERT_TYPES = ['death', 'catch', 'badge', 'evolve']; // the end of a run comes from run:status (also set by hand)
 const FRESH = 3 * 60 * 1000; // older entries arriving late (a sync catching up) are not announced
@@ -324,14 +394,14 @@ export function currentRunId({ lastRun = null, runs = [] } = {}) {
 export const TEAM_SLOTS = 6;
 
 /**
- * [w, h] of a widget at scale 1 for `n` players (1–4): a fixed box that holds a full team, the longest names and the
+ * [w, h] of a widget at scale 1 for `n` players (1–5): a fixed box that holds a full team, the longest names and the
  * biggest (DS) sprites – the size of its OBS browser source. The overlay lays its widget out inside exactly this box
  * whatever the data, so the source never grows or moves while the team fills up. `nick`/`hp` add the team strip's
  * nickname and HP-bar lines.
  */
 export function overlaySize(w, n = 1, { layout = 'h', nick = false, hp = true } = {}) {
   const v = layout === 'v';
-  const p = Math.min(4, Math.max(1, Math.round(n) || 1));
+  const p = Math.min(MAX_PLAYERS, Math.max(1, Math.round(n) || 1));
   const cell = 80 + (hp ? 9 : 0) + (nick ? 19 : 0); // one Pokémon of the team strip: sprite, HP bar, nickname
   switch (w) {
     // measured with six Pokémon, long names and nicknames, plus a few pixels of air (test/overlay.test.mjs checks the
@@ -342,6 +412,8 @@ export function overlaySize(w, n = 1, { layout = 'h', nick = false, hp = true } 
     case 'counters': return v ? [300, 352] : [740 + p * 70, 74];
     case 'where': return v ? [380, 24 + p * 128 + (p - 1) * 10] : [24 + p * 340 + (p - 1) * 10, 152];
     case 'alerts': return [960, 440];
+    // a 16:9 screen: the page fills whatever window or TV it is shown on, this is only its design size
+    case 'tv': return [1920, 1080];
     case 'stats': return v ? [340, 230 + (p > 2 ? 16 : 0)] : [640 + p * 110, 64];
     default: return [960, 540];
   }

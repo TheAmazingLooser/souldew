@@ -86,7 +86,7 @@ html.platform-linux .frame.rail-folded.app-native .rail-open ~ .main .session.fu
 .dock-btn.dot-warn::after { background: var(--warn); }
 .dock-btn.dot-bad::after { background: var(--cir); }
 .dock-who { font-family: var(--font-pixel); font-size: 14px; letter-spacing: -0.5px; }
-.dock-who.who-p2 { color: var(--p2); } .dock-who.who-p3 { color: var(--p3); } .dock-who.who-p4 { color: var(--p4); }
+.dock-who.who-p2 { color: var(--p2); } .dock-who.who-p3 { color: var(--p3); } .dock-who.who-p4 { color: var(--p4); } .dock-who.who-p5 { color: var(--p5); }
 .dock-who::after { content: ''; position: absolute; bottom: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); box-shadow: 0 0 0 2px #141318; }
 .dock-who.on::after { background: var(--tri); }
 .dock-sep { flex: none; background: var(--edge-hi); }
@@ -176,7 +176,7 @@ html.platform-win32 .app-native .rail-hint { left: 6px; }
 .gtrack-sum { color: var(--lcd-4); white-space: nowrap; }
 .gtrack-empty { position: relative; z-index: 1; }
 .gwho { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-family: var(--font-pixel); font-size: 11px; line-height: 1; color: #121116; position: relative; z-index: 1; }
-.gwho.who-bg-p1 { background: var(--p1); } .gwho.who-bg-p2 { background: var(--p2); } .gwho.who-bg-p3 { background: var(--p3); } .gwho.who-bg-p4 { background: var(--p4); }
+.gwho.who-bg-p1 { background: var(--p1); } .gwho.who-bg-p2 { background: var(--p2); } .gwho.who-bg-p3 { background: var(--p3); } .gwho.who-bg-p4 { background: var(--p4); } .gwho.who-bg-p5 { background: var(--p5); }
 .gmon { display: grid; gap: 3px; min-width: 0; flex: 1; }
 .gmon-top { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
 .gmon-name { font-family: var(--font-pixel); font-size: 11.5px; font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }

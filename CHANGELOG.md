@@ -2,6 +2,19 @@
 
 `npm run release` takes the release notes from the section of the version being released.
 
+## Unreleased
+
+- **Five players.** A SoulLink or Play together now takes up to five players: the new-run wizards offer 2 to 5, the
+  board, the routes, the sidebar, the dock and the overlays make room for a fifth column, and player 5 has a colour of
+  their own in every colour scheme (cyan; aqua and sand in the colour-blind ones). Raids take all five. A link (trade,
+  battle, Union Room) still holds at most four games, as on the consoles – “Link all of us” takes the first three
+  partners who are ready. Everybody in a run of five needs this version: its invite is a new run-pack format, so an
+  older app asks to update instead of quietly leaving player 5 out. The partner videos share the same upload budget,
+  so four watchers cost as much as three.
+- **TV overview.** Stream › TV overview: the whole run on one screen for a television or a second monitor in the room –
+  every player's team with HP, place, battle, badges and play time, the run's counts, the latest news and the pop-ups.
+  “Open in browser”, put the window on the TV, full screen. See [Streaming](docs/STREAMING.md#tv-overview).
+
 ## 3.0.0
 
 souldew 3.0 brings multiplayer: the players of a run trade Pokémon and battle each other the way the games meant it –

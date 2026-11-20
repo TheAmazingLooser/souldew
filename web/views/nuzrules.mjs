@@ -229,7 +229,7 @@ export function BallsRule({ value, onChange, players: n = 1, disabled = false })
     label=${t('rules.balls', 'Nothing counts before your first Poké Balls')} hint=${hint} />`;
 }
 
-/** What the lives rule does, for 1 (solo), 2 or 3–4 players and the chosen pool – one text for the wizard and the board. */
+/** What the lives rule does, for 1 (solo), 2 or 3–5 players and the chosen pool – one text for the wizard and the board. */
 function livesHint(players, pool) {
   if (players < 2) return t('lives.hintSolo', 'Every death costs a life – also one you mark by hand, and a bonus Pokémon. The death that takes the last life ends the run; undoing a death gives its life back.');
   const what = players > 2
@@ -242,7 +242,7 @@ function livesHint(players, pool) {
   return `${what} ${how} ${t('lives.hintUndo', 'Undoing a death gives its life back.')}`;
 }
 
-/** Off / on, how many (LIVES_MIN–LIVES_MAX), and with 2–4 players whose lives they are. onChange(patch of the rules). */
+/** Off / on, how many (LIVES_MIN–LIVES_MAX), and with 2–5 players whose lives they are. onChange(patch of the rules). */
 function LivesControl({ value, pool, players, onChange: change, disabled }) {
   const n = value > 0 ? value : 0;
   const onChange = (patch) => !disabled && change(patch);
@@ -258,7 +258,7 @@ function LivesControl({ value, pool, players, onChange: change, disabled }) {
 
 /**
  * The lives rule (shared/lives.mjs) – for every run, off unless switched on: a number of lives, every death costs
- * one, the death that takes the last ends the run; with 2–4 players one pool for everyone or each player's own.
+ * one, the death that takes the last ends the run; with 2–5 players one pool for everyone or each player's own.
  * value / pool: the rules' `lives` / `livesPool`; onChange(patch). `players`: how many play. Variant 'wizard': compact,
  * with its title; 'board': the hint over the control (the panel carries the title) and `left` – how many are left
  * (run.mjs lives()) with the players' `names`, and `ended` (the run has an end): while it hasn't, a pool the deaths so

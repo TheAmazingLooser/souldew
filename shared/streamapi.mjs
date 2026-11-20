@@ -16,8 +16,8 @@ import { levelCapFor, gymCapsFamily, vanillaCapFor, romCapFor, prettyTrainer } f
 
 export const API_VERSION = 1;
 export const API_PREFIX = '/api/v1';
-/** The players' colours – the same as the app's and the overlays' (p1 blue, p2 pink, p3 green, p4 violet). */
-export const PLAYER_COLORS = { p1: '#7f9ddb', p2: '#c98bbf', p3: '#b3c770', p4: '#a993e6' };
+/** The players' colours – the same as the app's and the overlays' (p1 blue, p2 pink, p3 green, p4 violet, p5 cyan). */
+export const PLAYER_COLORS = { p1: '#7f9ddb', p2: '#c98bbf', p3: '#b3c770', p4: '#a993e6', p5: '#6fcbdc' };
 export const API_LANGS = ['en', 'de', 'fr', 'es', 'it'];
 export const apiLang = (v) => (API_LANGS.includes(String(v || '').slice(0, 2)) ? String(v).slice(0, 2) : 'en');
 const LIVE_FRESH = 10 * 60 * 1000;
@@ -357,7 +357,7 @@ export function eventsBetween(prev, next) {
 /** A link battle's log entry for stream tools: who won, who lost, a draw, how many battles, the wager (₽). */
 function linkBattleOf(v) {
   if (v.type !== 'linkBattle') return {};
-  const slots = (a) => (Array.isArray(a) ? a.filter((s) => /^p[1-4]$/.test(s)).slice(0, 4) : []);
+  const slots = (a) => (Array.isArray(a) ? a.filter((s) => /^p[1-5]$/.test(s)).slice(0, 4) : []);
   const n = (x) => (Number.isFinite(x) ? Math.max(0, Math.min(999999, Math.floor(x))) : 0);
   return { winners: slots(v.winners), losers: slots(v.losers), draw: !!v.draw, battles: n(v.battles), wager: n(v.wager) };
 }

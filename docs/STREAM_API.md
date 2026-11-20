@@ -112,7 +112,7 @@ Every data endpoint takes `?lang=en|de|fr|es|it` for Pokémon, item and place na
 
 Field notes:
 
-- `run.mode`: `soullink` (2–4 players), `nuzlocke` (one player) or `together` (3.0, Play together: 2–4 players in their own games, no challenge – no encounters, deaths or a status; teams, badges and the log as usual). `run.gen`: 1–5. `run.status`: `null` while the
+- `run.mode`: `soullink` (2–5 players), `nuzlocke` (one player) or `together` (3.0, Play together: 2–5 players in their own games, no challenge – no encounters, deaths or a status; teams, badges and the log as usual). `run.gen`: 1–5. `run.status`: `null` while the
   run is on, else `{ state: "failed" | "won" | "ended", reason, at, by }` – `reason` when souldew ended it: `wipe`,
   `blackout`, `deathless` or `lives`.
 - `run.rules`: the run's rules with souldew's defaults filled in (SoulLink: `typeClause`, `dupes`, `shinyClause`,
@@ -125,7 +125,7 @@ Field notes:
   life ends the run (`run.status.reason: "lives"`).
 - `players[].lives`: `{ left, used }` of the pool this player spends from (the shared one or their own), `null` without
   lives.
-- `players[].color`: the player's colour in souldew (p1 blue, p2 pink, p3 green, p4 violet). `live`: the game sent
+- `players[].color`: the player's colour in souldew (p1 blue, p2 pink, p3 green, p4 violet, p5 cyan). `live`: the game sent
   data in the last 10 minutes. `badges`, `playTime`, `levelCap` and `location` are `null` until the game has been
   read. `levelCap`: HeartGold/SoulSilver's curated caps, else the vanilla gym aces of Gen 1/2; `null` when the run
   has no caps or the game has none.

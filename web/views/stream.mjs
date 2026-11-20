@@ -4,7 +4,7 @@
 // By default the links follow the current run (?run=current), so they keep working when a new run starts; one run
 // can be pinned instead.
 import { html, useEffect, useRef, useState } from '/vendor/htm-preact.mjs';
-import { useApp, copy, Led, openExternal } from '../lib/ui.mjs';
+import { useApp, copy, Led, openExternal, openOverlay } from '../lib/ui.mjs';
 import { Icon } from '../lib/icons.mjs';
 import { t, currentLang } from '../lib/i18n.mjs';
 import { api } from '../lib/api.mjs';
@@ -12,6 +12,7 @@ import { players as getPlayers, slotsOf, runMode } from '../lib/run.mjs';
 import { overlayUrl, overlaySize } from '/shared/overlay.mjs';
 import { useStreamer, setStreamer } from '../lib/streamer.mjs';
 import { LINKS } from '../lib/links.mjs';
+import { IS_MAC } from '../lib/platform.mjs';
 
 const ls = {
   get(k, d) {
@@ -187,6 +188,61 @@ function WidgetCard({ w, run, follow, slots, names, global, live, onTest }) {
   </section>`;
 }
 
+/** The TV overview's preview stage: tall enough that five columns of teams stay recognisable in the card. */
+const TV_STAGE = 280;
+
+/**
+ * The TV overview (web/overlay.html ?w=tv): every player's team, place, badges and the run's news on one 16:9 page –
+ * for a television or a second monitor in the room while everybody plays, rather than for a stream. It is opened in the
+ * system browser on the computer the TV is connected to (HDMI, a cast browser tab, a wireless display) and fills that
+ * screen; the app itself never opens a second window. Like the OBS links it follows the current run unless one is
+ * pinned.
+ *
+ * @param {object} props
+ * @param {object} props.run the run the links show
+ * @param {boolean} props.follow whether the link follows the current run
+ * @param {{ theme: string, lang: string, bg: string }} props.global the Stream page's look and language
+ * @param {number} props.live how many TV pages are open outside the app right now
+ */
+function TvCard({ run, follow, global, live }) {
+  const key = 'sl-stream-tv';
+  const [o, setO] = useState(() => ls.get(key, {}));
+  const set = (patch) => {
+    const next = { ...o, ...patch };
+    setO(next);
+    ls.set(key, next);
+  };
+  const target = follow ? 'current' : run.id;
+  const opts = { w: 'tv', theme: global.theme !== 'glass' ? global.theme : null, lang: global.lang || null, sound: o.sound ? 1 : null, alerts: o.alerts === false ? 0 : null };
+  // the app's own origin: the desktop app opens only its own /overlay page in the browser (electron/guards.mjs)
+  const url = overlayUrl(location.origin, target, opts);
+  const preview = overlayUrl(location.origin, target, { ...opts, preview: 1, sound: null });
+  return html`<section class="panel ov-card tv-card">
+    <div class="ov-head">
+      <span class="ov-ic"><${Icon} name="tiles" size=${18} /></span>
+      <div class="stack-s" style="gap:2px;min-width:0"><h3>${t('stream.tvTitle', 'TV overview')}</h3>
+        <p class="small muted">${t('stream.tvText', 'Every player’s team, place, battle and badges on one screen, with the run’s counts and the latest news – for a TV or a second monitor in the room while you all play.')}</p></div>
+      ${live > 0 && html`<span class="chip ok ov-live" title=${t('stream.tvLiveHint', 'A TV overview is open in a browser right now.')}><${Led} on color="green" />${t('stream.tvLive', 'on screen')}${live > 1 ? ` ×${live}` : ''}</span>`}
+    </div>
+    <${Preview} src=${preview} size=${[1920, 1080]} bg="dark" stage=${TV_STAGE} />
+    <ol class="small muted steps">
+      <li>${t('stream.tv1', 'Connect the TV to one of your computers – a cable (HDMI), a cast browser tab or a wireless display all work.')}</li>
+      <li>${t('stream.tv2', 'On that computer click “Open in browser”, move the window onto the TV and press {key} for full screen.', { key: IS_MAC ? '⌃⌘F' : 'F11' })}</li>
+      <li>${t('stream.tv3', 'Keep souldew running there: the overview shows what every player’s game reports, live.')}</li>
+    </ol>
+    <div class="ov-opts">
+      <label class="check ov-tg"><input type="checkbox" checked=${o.alerts !== false} onChange=${(e) => set({ alerts: e.target.checked })} /><span>${t('stream.tvAlerts', 'Pop-ups for deaths, catches and badges')}</span></label>
+      <label class="check ov-tg"><input type="checkbox" checked=${!!o.sound} disabled=${o.alerts === false} onChange=${(e) => set({ sound: e.target.checked })} /><span>${t('stream.sound', 'Sound')}</span></label>
+    </div>
+    <div class="ov-url">
+      <button type="button" class="btn small primary" onClick=${() => openOverlay(url)}><${Icon} name="external" size=${14} />${t('stream.tvOpen', 'Open in browser')}</button>
+      <span class="code sm-ok ellipsis grow" title=${url}>${url}</span>
+      <button type="button" class="btn small" onClick=${() => copy(url)}>${t('common.copy', 'Copy')}</button>
+    </div>
+    <p class="tiny faint">${t('stream.tvNote', 'Only this computer can open the link. Another device needs the picture of this one – a cable, a cast tab or a wireless display.')}</p>
+  </section>`;
+}
+
 /**
  * Pokélink themes: the bridge (server/lib/pokelink.mjs) speaks the socket.io protocol Pokélink's browser sources
  * use, so an existing theme shows souldew's teams – one "user" per player, by name or slot.
@@ -249,7 +305,7 @@ function PokelinkCard({ run, follow, slots, names }) {
         <span class="code sm-ok ellipsis grow" title=${param(user)}>${param(user)}</span>
         <button type="button" class="btn small" onClick=${() => copy(param(user))}>${t('common.copy', 'Copy')}</button></div>`;
     })}</div>
-      <p class="tiny faint">${t('stream.plNote', 'Instead of the name, user=p1 … p4 works too. Themes show what Pokélink’s data has: team, levels, HP, status, items, moves and badges.')}</p>
+      <p class="tiny faint">${t('stream.plNote', 'Instead of the name, user=p1 … p5 works too. Themes show what Pokélink’s data has: team, levels, HP, status, items, moves and badges.')}</p>
       <label class="check small"><input type="checkbox" checked=${!!st?.localPages} disabled=${busy || !st} onChange=${(e) => save({ localPages: e.target.checked })} />
         <span>${t('stream.plLocal', 'Also themes from another web server on this computer (localhost, any port) – themes opened from disk or from Pokélink’s website work without it')}</span></label>`}
   </section>`;
@@ -369,6 +425,7 @@ export function StreamView() {
     <div class="topbar"><h1>${t('nav.stream', 'Stream')}</h1>
       ${anyLive > 0 && html`<span class="chip ok"><${Led} on color="green" />${t('stream.obsCount', 'one overlay live in OBS|{count} overlays live in OBS', { count: anyLive })}</span>`}</div>
     ${switchCard}
+    <${TvCard} key=${follow ? 'tv' : `${run.id}-tv`} run=${run} follow=${follow} global=${global} live=${live.tv || 0} />
     <section class="panel stack">
       <div class="row wrap" style="gap:10px 16px">
         <h2 class="grow">${t('stream.overlays', 'Overlays for OBS')}</h2>

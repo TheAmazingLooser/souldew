@@ -81,7 +81,7 @@ export const baseName = (name) => String(name || '').replace(/\s+#\d+$/, '').tri
  * Body for POST /api/runs/build that restarts `old` (a full run manifest) – its shiny rate too.
  * library: { roms, patches } from /api/library · runs: existing runs (for the "#n" name) ·
  * rules: the old run's current rules (doc `rules`; falls back to manifest.rules) ·
- * mySlot: which player of the old run is on this computer – slots (all 1–4 of them) stay as they were.
+ * mySlot: which player of the old run is on this computer – slots (all 1–5 of them) stay as they were.
  * Throws (with .code) if the game or patch isn't in the library anymore.
  */
 export function restartRequest(old, { library, runs, rules, mySlot = 'p1', gameTitle, seed = randomSeed } = {}) {

@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('sls', {
   pickFiles: (opts) => ipcRenderer.invoke('pick-files', opts),
   reveal: (path) => ipcRenderer.invoke('reveal', path),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  // The app's own overlay page (the TV overview) in the system browser – nothing else on the local server.
+  openOverlay: (url) => ipcRenderer.invoke('open-overlay', url),
   appInfo: () => ipcRenderer.invoke('app-info'),
   // Graphics backend of this session, Chromium switches, GPU feature status and graphics cards (Settings, diagnostics).
   gpuInfo: () => ipcRenderer.invoke('gpu-info'),

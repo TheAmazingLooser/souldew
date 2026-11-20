@@ -28,8 +28,9 @@
   --led: #ff5b4a;
   --p1: var(--crs);
   --p2: var(--sqr);
-  --p3: #b3c770;    /* player 3 (3–4 player SoulLinks) */
+  --p3: #b3c770;    /* player 3 (3–5 player SoulLinks) */
   --p4: #a993e6;    /* player 4 */
+  --p5: #6fcbdc;    /* player 5: cyan – between --tri's green and --p1's blue, lighter than both */
   --warn: #e1b05a;  /* careful / near the limit */
   --ok-ink: #9ed3bf;   /* text on an "ok" tint */
   --bad-ink: #ef9a90;  /* text on a "danger" tint */
@@ -65,18 +66,20 @@ html[data-theme='contrast'] {
   --shell: #000; --shell-2: #0c0c0f; --shell-3: #17171c; --shell-4: #22222a;
   --edge: #77757f; --edge-hi: #a6a3ae;
   --ink: #ffffff; --ink-2: #e6e2d8; --ink-3: #c4c0b6;
-  --tri: #4fe0a8; --cir: #ff6b5e; --warn: #ffd34d; --crs: #8fb3ff; --sqr: #ff9de6; --p3: #d4f27c; --p4: #c8b2ff;
+  --tri: #4fe0a8; --cir: #ff6b5e; --warn: #ffd34d; --crs: #8fb3ff; --sqr: #ff9de6; --p3: #d4f27c; --p4: #c8b2ff; --p5: #7ff0ff;
   --ok-ink: #a8ffdd; --bad-ink: #ffc2bb; --warn-ink: #ffe58f; --focus: #ffd34d;
 }
 html[data-theme='deutan'] { /* red-green colour blindness (deuteranopia / protanopia): blue ↔ orange */
   --tri: #3aa7e8; --cir: #e8731c; --warn: #f0d84a; --crs: #9db8ff; --sqr: #ff9fd1; --led: #e8731c;
   --p3: #e6dcb4; --p4: #c2a8ff; /* sand / violet: apart by lightness from the blue/orange/yellow signals */
+  --p5: #7fe0e6; /* aqua: lighter and greener than the --tri blue, cooler than the --p3 sand */
   --ok-ink: #a9d9f7; --bad-ink: #ffc08f; --warn-ink: #f7ea9a; --focus: #f0d84a;
   --ink-3: #99958d;
 }
 html[data-theme='tritan'] { /* blue-yellow colour blindness (tritanopia): teal ↔ magenta-red */
   --tri: #2fc89a; --cir: #ff4f7b; --warn: #ff9d5c; --crs: #d6a6ff; --sqr: #ff86b8; --led: #ff4f7b;
   --p3: #c5d98a; --p4: #7fc6f0; /* lime / sky: away from the teal / magenta-red signals */
+  --p5: #e3d6b0; /* sand: the one light hue left beside lilac, pink, lime and sky – lighter than the --warn orange */
   --ok-ink: #9cf0d4; --bad-ink: #ffb3c6; --warn-ink: #ffc9a3; --focus: #2fc89a;
   --ink-3: #99958d;
 }
@@ -359,6 +362,7 @@ button.hack-card:hover { background: var(--shell-4); }
 .player-tag.p2 .who { color: var(--p2); }
 .player-tag.p3 .who { color: var(--p3); }
 .player-tag.p4 .who { color: var(--p4); }
+.player-tag.p5 .who { color: var(--p5); }
 .vs { font-family: var(--font-pixel); color: var(--ink-3); font-size: 14px; text-align: center; }
 .tabs { display: flex; gap: 4px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
 .tabs button { border: 0; background: transparent; padding: 8px 15px; cursor: pointer; color: var(--ink-2); font-family: var(--font-pixel); font-size: 15px; border-radius: 999px; position: relative; transition: color .15s, background .2s, transform .15s; }
@@ -422,6 +426,7 @@ button.hack-card:hover { background: var(--shell-4); }
 .who-p2 { color: var(--p2); font-weight: 500; }
 .who-p3 { color: var(--p3); font-weight: 500; }
 .who-p4 { color: var(--p4); font-weight: 500; }
+.who-p5 { color: var(--p5); font-weight: 500; }
 .warnings { display: flex; flex-direction: column; gap: 6px; }
 .warnings-more { align-self: flex-start; }
 .warning { font-size: 13px; padding: 8px 12px; border-radius: var(--r-m); background: #3a321f; color: var(--warn-ink); }
@@ -989,11 +994,11 @@ ol.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 .theme-card[data-theme-preview='contrast'] .sw.ok { background: #4fe0a8; } .theme-card[data-theme-preview='contrast'] .sw.bad { background: #ff6b5e; } .theme-card[data-theme-preview='contrast'] .sw.warn { background: #ffd34d; } .theme-card[data-theme-preview='contrast'] .sw.p1 { background: #8fb3ff; } .theme-card[data-theme-preview='contrast'] .sw.p2 { background: #ff9de6; }
 .theme-card[data-theme-preview='deutan'] .sw.ok { background: #3aa7e8; } .theme-card[data-theme-preview='deutan'] .sw.bad { background: #e8731c; } .theme-card[data-theme-preview='deutan'] .sw.warn { background: #f0d84a; } .theme-card[data-theme-preview='deutan'] .sw.p1 { background: #9db8ff; } .theme-card[data-theme-preview='deutan'] .sw.p2 { background: #ff9fd1; }
 .theme-card[data-theme-preview='tritan'] .sw.ok { background: #2fc89a; } .theme-card[data-theme-preview='tritan'] .sw.bad { background: #ff4f7b; } .theme-card[data-theme-preview='tritan'] .sw.warn { background: #ff9d5c; } .theme-card[data-theme-preview='tritan'] .sw.p1 { background: #d6a6ff; } .theme-card[data-theme-preview='tritan'] .sw.p2 { background: #ff86b8; }
-/* players 3 and 4 too: a 4-player SoulLink needs all four colours apart in every scheme */
-.theme-card .sw.p3 { background: #b3c770; } .theme-card .sw.p4 { background: #a993e6; }
-.theme-card[data-theme-preview='contrast'] .sw.p3 { background: #d4f27c; } .theme-card[data-theme-preview='contrast'] .sw.p4 { background: #c8b2ff; }
-.theme-card[data-theme-preview='deutan'] .sw.p3 { background: #e6dcb4; } .theme-card[data-theme-preview='deutan'] .sw.p4 { background: #c2a8ff; }
-.theme-card[data-theme-preview='tritan'] .sw.p3 { background: #c5d98a; } .theme-card[data-theme-preview='tritan'] .sw.p4 { background: #7fc6f0; }
+/* players 3 to 5 too: a 5-player SoulLink needs all five colours apart in every scheme */
+.theme-card .sw.p3 { background: #b3c770; } .theme-card .sw.p4 { background: #a993e6; } .theme-card .sw.p5 { background: #6fcbdc; }
+.theme-card[data-theme-preview='contrast'] .sw.p3 { background: #d4f27c; } .theme-card[data-theme-preview='contrast'] .sw.p4 { background: #c8b2ff; } .theme-card[data-theme-preview='contrast'] .sw.p5 { background: #7ff0ff; }
+.theme-card[data-theme-preview='deutan'] .sw.p3 { background: #e6dcb4; } .theme-card[data-theme-preview='deutan'] .sw.p4 { background: #c2a8ff; } .theme-card[data-theme-preview='deutan'] .sw.p5 { background: #7fe0e6; }
+.theme-card[data-theme-preview='tritan'] .sw.p3 { background: #c5d98a; } .theme-card[data-theme-preview='tritan'] .sw.p4 { background: #7fc6f0; } .theme-card[data-theme-preview='tritan'] .sw.p5 { background: #e3d6b0; }
 
 
 /* ---------- reactive UI: depth, hover light and motion everywhere ---------- */

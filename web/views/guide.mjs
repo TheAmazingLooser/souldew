@@ -95,7 +95,7 @@ export function ControlsTable() {
   </tbody></table>`;
 }
 
-/** group: a run of 3–4 players – "the others' computers" instead of the partner's. */
+/** group: a run of 3–5 players – "the others' computers" instead of the partner's. */
 export function ConnectionFlow({ group = false } = {}) {
   return html`<div class="flow" aria-label=${t('conn.flowAria', 'How the connection works')}>
     <div class="box"><b>${t('conn.yourComputer', 'Your computer')}</b><span>${t('conn.local', 'souldew, local')}</span></div>

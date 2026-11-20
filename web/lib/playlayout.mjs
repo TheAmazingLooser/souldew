@@ -16,8 +16,8 @@ export const FOLDED = 48;
  * group's card), never less than the title card with the place and the level cap needs.
  */
 export function dockHeight(players = 1) {
-  const n = Math.max(1, Math.min(4, Number(players) || 1));
-  return [196, 196, 196, 234, 266][n];
+  const n = Math.max(1, Math.min(5, Number(players) || 1));
+  return [196, 196, 196, 234, 266, 298][n];
 }
 
 /** The biggest w×h of aspect `ar` inside w×h (whole pixels). */

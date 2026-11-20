@@ -22,7 +22,7 @@ import { isHostKey } from '../../shared/hostrules.mjs';
 import { signRules, isHostComputer } from './hostkey.mjs';
 import { TOGETHER_SYSTEMS, libraryIdOf, okLibraryId } from '../../shared/playtogether.mjs';
 
-/** Runs from before 1–4 players were always a pair – the default where no slots are passed (shared/slots.mjs). */
+/** Runs from before 1–5 players were always a pair – the default where no slots are passed (shared/slots.mjs). */
 const PAIR = ['p1', 'p2'];
 
 // Player names become part of file names ("<name> - <game>.nds"): nothing Windows forbids, no control characters.
@@ -30,7 +30,7 @@ const safeName = (s) => String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f\u007f]
 const defaultName = (slot) => `Player ${slot.slice(1)}`;
 
 /**
- * Mode and players of a build request: a Nuzlocke is p1 alone, a SoulLink p1..pN (2–4, contiguous; a missing p2
+ * Mode and players of a build request: a Nuzlocke is p1 alone, a SoulLink p1..pN (2–5, contiguous; a missing p2
  * becomes "Player 2"). `existing` (a rebuild) fills in what the request leaves out.
  */
 export function runPlayers(opts = {}, existing = null) {
@@ -40,7 +40,7 @@ export function runPlayers(opts = {}, existing = null) {
   const present = ALL_SLOTS.filter((s) => given[s]);
   const count = mode === 'nuzlocke' ? 1 : Math.max(2, present.length);
   const slots = ALL_SLOTS.slice(0, count);
-  if (mode !== 'nuzlocke' && present.some((s) => !slots.includes(s))) throw httpError(400, 'Players must be p1 to p4 without gaps', 'playersGap');
+  if (mode !== 'nuzlocke' && present.some((s) => !slots.includes(s))) throw httpError(400, 'Players must be p1 to p5 without gaps', 'playersGap');
   const players = Object.fromEntries(slots.map((s) => [s, { name: safeName(given[s]?.name || defaultName(s)) }]));
   return { mode, slots, players };
 }
@@ -162,7 +162,7 @@ export function listRuns() {
 const summaries = new Map();
 /**
  * `slots`: the run's slots (shared/slots.mjs slotsOf) – a group is alive once every one of them caught there.
- * live/badges list those slots plus any other p1..p4 the doc has data for.
+ * live/badges list those slots plus any other p1..p5 the doc has data for.
  */
 export function summarizeDoc(entries, slots = PAIR) {
   const s = { status: null, alive: 0, dead: 0, failed: 0, caught: 0, badges: {}, live: {}, names: {}, lastPlayed: null };
@@ -178,13 +178,13 @@ export function summarizeDoc(entries, slots = PAIR) {
     const v = e.v;
     if (k === 'run:status' && v.state) s.status = v;
     else if (k.startsWith('pair:') && v.state === 'dead') s.dead++;
-    else if (/^live:p[1-4]$/.test(k)) {
+    else if (/^live:p[1-5]$/.test(k)) {
       const slot = k.slice(5);
       s.live[slot] = v.at || null;
       s.badges[slot] = v.badges || 0;
-    } else if (/^player:p[1-4]$/.test(k) && v.name) s.names[k.slice(7)] = v.name;
+    } else if (/^player:p[1-5]$/.test(k) && v.name) s.names[k.slice(7)] = v.name;
     else {
-      const m = k.match(/^enc:(.+):(p[1-4])$/);
+      const m = k.match(/^enc:(.+):(p[1-5])$/);
       if (m) (enc[m[1]] ||= {})[m[2]] = v.outcome;
     }
   }
@@ -363,7 +363,7 @@ export function runPack(m) {
  * opts: { name, romId, patchId, patchSha1, values, randomize, mode?: 'soullink'|'nuzlocke',
  *         seeds: {p1, …, pN}, players: {p1:{name}, …, pN:{name}}, buildFor: ['p1', …], identity?: {id, room, secret}, rules,
  *         shiny?: { rate, trainers } (shared/shiny.mjs – a rebuild without it keeps the run's) }
- * A Nuzlocke has p1 only, a SoulLink 2–4 players; buildFor defaults to every slot of the run.
+ * A Nuzlocke has p1 only, a SoulLink 2–5 players; buildFor defaults to every slot of the run.
  */
 /**
  * A 3DS game file into the run folder without reading it: a hard link (same drive – instant, no extra space), else a

@@ -1,11 +1,31 @@
 # Streaming with souldew
 
-OBS overlays, the coffee pop-up, Pokélink themes and the overlay API. Back to the [README](../README.md).
+OBS overlays, the TV overview, the coffee pop-up, Pokélink themes and the overlay API. Back to the [README](../README.md).
 Building your own layout? The **[open stream API](STREAM_API.md)** has the run's data, live events and sprites.
 
 ## Streamer mode
 
 **Streamer mode** (Stream page): one switch covers invite codes (also in the "copied" toast), folders and file names, the Discord webhook and locks the spoiler tab. A LIVE badge shows next to "souldew".
+
+## TV overview
+
+Playing in one room? The **TV overview** (Stream page, first card) puts the whole run on one screen – a television or a
+second monitor – while everybody plays on their own computer: one column per player (up to five) with their name in
+their colour, whether their game is running, badges, play time, where they are and the battle they're in, all six
+team members with level, HP and status, and how many of their Pokémon can still fight, how many they caught and how
+many deaths their knock-outs caused. On top the run's name and counts (groups alive, graveyard, caught), at the bottom
+the latest news (catches, deaths, badges, evolutions), and the usual pop-ups for deaths, catches and badges (optional,
+with sound if you like).
+
+1. Connect the TV to one of the players' computers: an HDMI cable (as a second screen), a browser tab cast to a
+   Chromecast / Google TV, Windows' wireless display (Win + K) or AirPlay on a Mac.
+2. On that computer, Stream › TV overview › **Open in browser**. Move the window onto the TV and press F11 (Mac: ⌃⌘F).
+3. Keep souldew running there. Every app of a run has every player's data, so it doesn't matter whose computer it is.
+
+The page is `/overlay?w=tv` (add `&p=p1,p3` for some players only, `&alerts=0` without pop-ups, `&sound=1` with
+sound, `&lang=de` …). It is laid out for 16:9 at 1920 × 1080 and scaled to fill any window; the mouse pointer hides
+after a few seconds. Like every overlay it is served on `127.0.0.1` only: a TV's own browser can't open it, the
+computer has to send its picture.
 
 ## OBS overlays
 
@@ -69,7 +89,7 @@ Everything runs on this computer only (`127.0.0.1`), read-only, without room key
 
 ## Pokélink themes
 
-Switch on the **Pokélink bridge** on the Stream page. souldew then also listens on `127.0.0.1:3000` (port configurable) and speaks the socket.io protocol the themes from [pokelink-web-sources](https://github.com/pokelinkapp/pokelink-web-sources) expect (socket.io-client 2.x, Engine.IO 3). Open a theme with the ending shown on the Stream page instead of its own `?user=…`, e.g. `index.html?user=Robin&server=http://127.0.0.1&port=3000`; `user` is the player's name or `p1`–`p4`. Like the overlays it follows the current run, unless a run is pinned in the Stream page's **Run** menu. Events:
+Switch on the **Pokélink bridge** on the Stream page. souldew then also listens on `127.0.0.1:3000` (port configurable) and speaks the socket.io protocol the themes from [pokelink-web-sources](https://github.com/pokelinkapp/pokelink-web-sources) expect (socket.io-client 2.x, Engine.IO 3). Open a theme with the ending shown on the Stream page instead of its own `?user=…`, e.g. `index.html?user=Robin&server=http://127.0.0.1&port=3000`; `user` is the player's name or `p1`–`p5`. Like the overlays it follows the current run, unless a run is pinned in the Stream page's **Run** menu. Events:
 
 - `client:players:list` on connect: `[{ id, username, party: [{ slotId: 1–6, pokemon | null }], trainer: { name, game: { id: "POKEMON HG", friendlyName, generation }, badges: [{ name: "Zephyr", value: 0|1 }] } }]`
 - `client:party:updated` `{ id, username, update: { party } }` and `player:trainer:updated` `{ id, username, trainer }` when something changes for that player

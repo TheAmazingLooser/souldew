@@ -41,7 +41,7 @@
 //                                                             card and greys out Trade / Battle. Older builds drop it
 //                                                             (no sid of theirs). Only ever about the sender itself.
 import { serverErrorText } from './errors.mjs';
-import { LINK_CMD, linkDelay, sameLinkSystem } from '/shared/link.mjs';
+import { LINK_CMD, linkDelay, sameLinkSystem, MAX_LINK_SEATS } from '/shared/link.mjs';
 import { b64, unb64, deflate, inflate, sha1 } from './bytes.mjs';
 import { LinkResult } from './linkresult.mjs';
 import { WAGER_CAP, wagerRules, agreedWager, resultEntry } from './wager.mjs';
@@ -62,7 +62,7 @@ const MAX_SAVE_BYTES = 4 * 1024 * 1024; // (server/lib/native.mjs MAX_SAVE: a pa
 // a player is asked once more – the "in another link" answer covers that short moment.
 const LINKED_PHASES = ['preparing', 'need', 'running', 'rejoining'];
 const LINKED_TTL_MS = 10 * 1000; // a seat that went quiet (crash, closed page) is no longer shown as linked
-const SLOT_RE = /^p[1-4]$/;
+const SLOT_RE = /^p[1-5]$/;
 const newSid = () => [...crypto.getRandomValues(new Uint8Array(6))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
 const store = {
@@ -203,7 +203,7 @@ export class LinkSessions {
     }
     const seats = Array.isArray(m.seats) ? [...new Set(m.seats.filter((s) => typeof s === 'string' && SLOT_RE.test(s)))] : [];
     // (a session with us in it isn't "elsewhere": we know it ourselves)
-    if (seats.length < 2 || seats.length > 4 || !seats.includes(from) || seats.includes(this.me)) return;
+    if (seats.length < 2 || seats.length > MAX_LINK_SEATS || !seats.includes(from) || seats.includes(this.me)) return;
     const kind = m.kind === 'battle' ? 'battle' : 'trade';
     this.elsewhere[from] = { seats, kind, at: Date.now() };
     if (!had || had.kind !== kind || had.seats.join() !== seats.join()) this.onChange(this.state);
@@ -264,7 +264,10 @@ export class LinkSessions {
     const blocked = this.block(slots, kind);
     if (blocked) throw Object.assign(new Error('blocked'), { code: blocked });
     this.ownModel = c.model || null;
+    // a link holds at most MAX_LINK_SEATS games (the consoles' own limit): an invite for more would be dropped by every
+    // receiver and only end in "no answer" – a run of five links at most four of its players at a time
     const seats = [this.me, ...slots.filter((s) => s !== this.me)];
+    if (seats.length > MAX_LINK_SEATS) throw Object.assign(new Error('too many seats'), { code: 'linkSeats' });
     const wr = wagerRules(this.rules());
     const offer = kind === 'battle' && wr.on ? Math.max(0, Math.floor(Number(wager) || 0)) : 0;
     const bet = wr.cap ? Math.min(offer, wr.cap) : offer;
@@ -511,7 +514,7 @@ export class LinkSessions {
     const st = this.state;
     if (m.t === 'linked') return this._linkedIn(m);
     if (m.t === 'invite') {
-      if (!Array.isArray(m.seats) || !m.seats.includes(this.me) || m.seats.length > 4) return;
+      if (!Array.isArray(m.seats) || !m.seats.includes(this.me) || m.seats.length > MAX_LINK_SEATS) return;
       // (in another session already: say so – the inviter would wait for an answer otherwise)
       if (!['idle', 'ended', 'rejoinable'].includes(st.phase)) return st.sid !== m.sid && this.sync.sendLink({ t: 'refuse', reason: 'busy', sid: m.sid }, [m.from]);
       return this._new({

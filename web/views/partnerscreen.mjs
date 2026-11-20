@@ -1,5 +1,5 @@
 // Partner screens: the other players' games, live, while you play. Each partner is a tile in the play view's dock
-// (views/playdock.mjs) – two players: one tile, three or four: one per partner at once. A tile can be popped out into a
+// (views/playdock.mjs) – two players: one tile, three to five: one per partner at once. A tile can be popped out into a
 // window over the play area: it moves by its header and resizes from its corner grip (the picture keeps its aspect),
 // snaps lightly to the edges and to the other windows, never leaves the play area and never covers the game bar, and
 // is remembered per run and partner on this computer (popped out or not, position, size). "Back to the panel" docks it

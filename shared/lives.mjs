@@ -5,7 +5,7 @@
 //
 // What a death costs: one life per Pokémon that fell. In a SoulLink the partners' Pokémon that die with it through
 // the link cost nothing more – they are lost already, and charging the whole pair or group would make one mistake
-// cost 2–4 lives, so the same number of lives would be worth less with every player. A bonus Pokémon (kept shiny or
+// cost 2–5 lives, so the same number of lives would be worth less with every player. A bonus Pokémon (kept shiny or
 // gift) costs a life like any other.
 // Pools: 'shared' – one for the whole run; 'player' – one per player, the life comes off the player whose Pokémon
 // fell (`pair.by`). When any pool is empty the run is over, just as when one player's team is wiped. A solo

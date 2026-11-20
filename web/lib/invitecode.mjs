@@ -52,10 +52,10 @@ export const KDF_ITERATIONS = 1000000;
 const SALT = 'soullink-studio/invite-code@1';
 // The run pack's formats this app reads – shared/runpack.mjs PACK_FORMATS (a test keeps the two the same; a run with
 // another shiny rate has its own, which 2.7.4 refuses – and one with a rate 2.8.0 doesn't know, which 2.8.0 refuses; a
-// run whose TM compatibility follows the TM moves needs 2.8.3; a Play together needs 3.0.0). A pack of a later format:
-// "update souldew".
+// run whose TM compatibility follows the TM moves needs 2.8.3; a Play together needs 3.0.0; a run with a fifth player
+// needs 3.1.0). A pack of a later format: "update souldew".
 export const PACK_FORMATS = ['soullink-studio/run-pack@1', 'soullink-studio/run-pack@2', 'soullink-studio/run-pack@3', 'soullink-studio/run-pack@4',
-  'soullink-studio/run-pack@5'];
+  'soullink-studio/run-pack@5', 'soullink-studio/run-pack@6'];
 const packFormatState = (pack) => (PACK_FORMATS.includes(pack?.format) ? 'ok'
   : typeof pack?.format === 'string' && /^soullink-studio\/run-pack@\d{1,4}$/.test(pack.format) ? 'newer' : 'invalid');
 const MAX_FAILS = 3; // wrong key or declined
@@ -229,7 +229,7 @@ const WIRE_ERROR = { sending: 'used', done: 'used', cancelled: 'expired', error:
  * that are live right now, the host's own included.
  */
 export function suggestSlot(players, taken = [], name = '', online = null) {
-  const all = Object.keys(players || {}).filter((s) => /^p[1-4]$/.test(s)).sort();
+  const all = Object.keys(players || {}).filter((s) => /^p[1-5]$/.test(s)).sort();
   const free = all.filter((s) => !taken.includes(s));
   const n = String(name || '').trim().toLowerCase();
   const named = (s) => n && String(players[s]?.name || '').trim().toLowerCase() === n;

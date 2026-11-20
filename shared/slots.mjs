@@ -1,11 +1,24 @@
-// Who plays a run: 1–4 player slots (p1..pN) and the run mode. Shared by the server (builds, summaries)
+// Who plays a run: 1–5 player slots (p1..pN) and the run mode. Shared by the server (builds, summaries)
 // and the browser (web/lib/run.mjs re-exports it), so both read a manifest the same way.
 
-export const ALL_SLOTS = ['p1', 'p2', 'p3', 'p4'];
+/**
+ * Every player slot a run can have, in order. A fifth player (p5) arrived after 3.0: a run with p5 travels as its own
+ * run-pack format (shared/runpack.mjs), so an app that only knows p1–p4 refuses it instead of dropping that player.
+ */
+export const ALL_SLOTS = ['p1', 'p2', 'p3', 'p4', 'p5'];
+
+/** The most players a run can have (a SoulLink or Play together; a Nuzlocke is always one). */
+export const MAX_PLAYERS = ALL_SLOTS.length;
+
+/** The player counts a new SoulLink or Play together can be set up with: 2 … MAX_PLAYERS. */
+export const PLAYER_COUNTS = ALL_SLOTS.slice(1).map((_, i) => i + 2);
+
+/** Is `slot` one of the run slots (p1 … p5)? */
+export const isSlot = (slot) => ALL_SLOTS.includes(slot);
 export const MODES = ['soullink', 'nuzlocke', 'together'];
 
 /**
- * 'soullink' (2–4 players), 'nuzlocke' (solo) or 'together' (3.0, "Play together": 2–4 players in their own normal
+ * 'soullink' (2–5 players), 'nuzlocke' (solo) or 'together' (3.0, "Play together": 2–5 players in their own normal
  * games – trades, battles, Shared World, raids – without any challenge rules; shared/playtogether.mjs). Runs from
  * before modes existed are SoulLinks.
  */

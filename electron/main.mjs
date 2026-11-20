@@ -12,7 +12,7 @@ import { RENDERER_COOKIE } from '../server/lib/guard.mjs';
 import { randomBytes } from 'node:crypto';
 import { grantPicked } from '../server/lib/grants.mjs';
 import { chromiumSwitches, startDecision, crashDecision, gpuInfoSummary, safeGraphicsRequested, withoutSafeGraphics } from '../shared/gpu.mjs';
-import { sameOrigin, safeExternalUrl, subframeNavigationAllowed, permissionAllowed, isTrustedIpcSender, titleBarColors, initialWindowSize, signInUrl } from './guards.mjs';
+import { sameOrigin, safeExternalUrl, appOverlayUrl, subframeNavigationAllowed, permissionAllowed, isTrustedIpcSender, titleBarColors, initialWindowSize, signInUrl } from './guards.mjs';
 import { appLang, textsFor } from './texts.mjs';
 import { validUiScale, fitUiScale, windowChromeAt } from '../shared/uiscale.mjs';
 
@@ -527,6 +527,13 @@ handle('reveal', (e, path) => {
   if (typeof path === 'string' && path.length < 4096 && isAbsolute(path) && !/^[\\/]{2}/.test(path) && !path.includes('\0')) shell.showItemInFolder(path);
 });
 handle('open-external', (e, url) => openExternalSafe(url));
+// The TV overview in the system browser (it goes full screen there, on whichever screen the TV is). Only the app's own
+// /overlay page – appOverlayUrl refuses every other address, the local API included.
+handle('open-overlay', (e, url) => {
+  const safe = serverUrl && appOverlayUrl(url, serverUrl);
+  if (safe) shell.openExternal(safe);
+  return !!safe;
+});
 handle('app-info', () => ({ version: app.getVersion(), packaged: app.isPackaged, dataDir: app.getPath('userData'), platform: process.platform }));
 // The graphics backend this session runs with (Settings compares it with the saved one) and, for "Save diagnostics",
 // the switches, Chromium's feature status and the graphics cards with their drivers.

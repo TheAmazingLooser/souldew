@@ -2,7 +2,7 @@
   "name": "souldew",
   "version": "3.0.0",
   "private": true,
-  "description": "souldew – Pokémon SoulLinks (2–4 players) and Nuzlockes with a built-in emulator, live sync and a game library",
+  "description": "souldew – Pokémon SoulLinks (2–5 players) and Nuzlockes with a built-in emulator, live sync and a game library",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/souldewapp/souldew",
   "repository": {
@@ -206,7 +206,7 @@
       "icon": "build/icon.png",
       "category": "Game",
       "synopsis": "Pokémon SoulLinks and Nuzlockes with a built-in emulator",
-      "description": "Pokémon SoulLinks for 2–4 players and solo Nuzlockes: built-in emulator, live tracking from game memory, randomizer, real-time sync and OBS overlays.",
+      "description": "Pokémon SoulLinks for 2–5 players and solo Nuzlockes: built-in emulator, live tracking from game memory, randomizer, real-time sync and OBS overlays.",
       "maintainer": "souldew <https://github.com/souldewapp/souldew>",
       "vendor": "souldew",
       "executableName": "souldew",

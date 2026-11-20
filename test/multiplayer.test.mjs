@@ -30,7 +30,7 @@ const caught = (species = 16) => ({ outcome: 'caught', species });
 const feedTexts = (d) => R.feedList(d).map((f) => f.text);
 
 test('slots and mode come from the manifest; older runs are a p1+p2 SoulLink', () => {
-  assert.deepEqual(R.ALL_SLOTS, ['p1', 'p2', 'p3', 'p4']);
+  assert.deepEqual(R.ALL_SLOTS, ['p1', 'p2', 'p3', 'p4', 'p5']);
   assert.deepEqual(R.slotsOf(HG), ['p1', 'p2']);
   assert.deepEqual(R.slotsOf({ players: { p1: {}, p2: {} } }), ['p1', 'p2']);
   assert.deepEqual(R.slotsOf(M3), ['p1', 'p2', 'p3']);
@@ -42,6 +42,15 @@ test('slots and mode come from the manifest; older runs are a p1+p2 SoulLink', (
   assert.deepEqual(R.othersOf('p1', SOLO), []);
   assert.deepEqual(Object.keys(R.players(mkDoc(), M3)), ['p1', 'p2', 'p3']);
   assert.equal(R.players(mkDoc(), M4).p4.name, 'Alex');
+});
+
+test('five players: p5 is a slot of its own – read from the manifest, never a gap', () => {
+  const M5 = { ...M4, players: { ...M4.players, p5: { name: 'Sky' } } };
+  assert.deepEqual(R.slotsOf(M5), ['p1', 'p2', 'p3', 'p4', 'p5']);
+  assert.deepEqual(R.othersOf('p5', M5), ['p1', 'p2', 'p3', 'p4']);
+  assert.equal(R.players(mkDoc(), M5).p5.name, 'Sky');
+  // a p5 after a missing p4 is a gap: the run is read up to the gap, as with every other slot
+  assert.deepEqual(R.slotsOf({ ...M3, players: { ...M3.players, p5: { name: 'Sky' } } }), ['p1', 'p2', 'p3']);
 });
 
 test('3 players: the group links only once everyone caught; one miss fails it', () => {

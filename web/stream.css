@@ -46,6 +46,8 @@ html.streamer .sm-secret:focus { filter: blur(7px); }
 .ov-follow.on svg { color: var(--tri); }
 .ov-global select, .stream-page select { background: var(--shell-3); color: var(--ink); border: 1px solid var(--edge); border-radius: 8px; padding: 5px 8px; font: inherit; }
 .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+/* the TV overview: a full-width card above the OBS widgets – a different use (a screen in the room, not a stream) */
+.tv-card .ov-preview { max-width: calc(280px * 16 / 9); width: 100%; margin-inline: auto; }
 .ov-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .ov-head { display: flex; gap: 12px; align-items: flex-start; }
 .ov-head h3 { font-size: 15px; }

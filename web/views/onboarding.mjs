@@ -77,14 +77,14 @@ export function Onboarding({ onDone }) {
     </div>` },
     { id: 'how', label: t('onb.sHow', 'SoulLink'), body: html`<div class="stack-l">
       <div class="stack-s"><h1>${t('onb.howTitle', 'How a SoulLink works')}</h1>
-        <p class="muted">${t('onb.howTextAny', '2 to 4 players, one game each, one fate. The app keeps score for you – live.')}</p></div>
+        <p class="muted">${t('onb.howTextAny', '2 to 5 players, one game each, one fate. The app keeps score for you – live.')}</p></div>
       <div class="onb-pair" aria-hidden="true">
         <div class="onb-mon p1"><${Sprite} id=${152} size=${56} gen=${4} /><span>${name.trim() || t('common.you', 'you')}</span></div>
         <svg viewBox="0 0 120 26" preserveAspectRatio="none"><path d="M1 13 C 30 2, 50 24, 60 13 S 92 2, 119 13" /></svg>
         <div class="onb-mon p2"><${Sprite} id=${155} size=${56} gen=${4} /><span>${t('common.partner', 'Partner')}</span></div>
       </div>
       <div class="explain">
-        <div class="screen"><b>${t('onb.how1Title', '1 · Catch together')}</b><span class="small">${t('onb.how1Any', 'On every route, each of you keeps only the first Pokémon you meet. Those catches are linked – a pair, or a group with 3–4 players.')}</span></div>
+        <div class="screen"><b>${t('onb.how1Title', '1 · Catch together')}</b><span class="small">${t('onb.how1Any', 'On every route, each of you keeps only the first Pokémon you meet. Those catches are linked – a pair, or a group with 3–5 players.')}</span></div>
         <div class="screen"><b>${t('onb.how2Title', '2 · Share a fate')}</b><span class="small">${t('onb.how2Any', 'If one Pokémon faints, the ones linked to it die too. Linked Pokémon always join or leave the team together.')}</span></div>
         <div class="screen"><b>${t('onb.how3Title', '3 · See it live')}</b><span class="small">${t('onb.how3', 'The built-in emulator reads your team while you play and syncs it to the others in real time.')}</span></div>
         <div class="screen"><b>${t('onb.how4Title', '4 · Until the end')}</b><span class="small">${t('onb.how4Any', 'If one of you loses the whole team, the run is over for everyone – then you start a new attempt with one click.')}</span></div>
@@ -139,9 +139,9 @@ export function Onboarding({ onDone }) {
     </div>` },
     { id: 'start', label: t('onb.sStart', 'Start'), body: html`<div class="stack-l">
       <div class="stack-s"><h1>${t('onb.startTitle', 'How do you want to start?')}</h1>
-        <p class="muted">${t('onb.startTextAny', 'A SoulLink needs 2–4 players: one hosts, the others join with a code. A Nuzlocke you play on your own.')}</p></div>
+        <p class="muted">${t('onb.startTextAny', 'A SoulLink needs 2–5 players: one hosts, the others join with a code. A Nuzlocke you play on your own.')}</p></div>
       <div class="onb-choices four">
-        ${choice('link', t('onb.startHostLink', 'Host a SoulLink'), t('onb.startHostTextLink', 'For 2–4 players: pick game and randomizer, then invite the others with a 6-digit code.'), 'host', true)}
+        ${choice('link', t('onb.startHostLink', 'Host a SoulLink'), t('onb.startHostTextLink', 'For 2–5 players: pick game and randomizer, then invite the others with a 6-digit code.'), 'host', true)}
         ${choice('user', t('onb.startNuzlocke', 'Start a Nuzlocke'), t('onb.startNuzlockeText', 'Just you: pick game, randomizer and the Nuzlocke rules.'), 'nuzlocke')}
         ${choice('load', t('onb.startJoin', 'I got a code'), t('onb.startJoinTextAny', 'Somebody hosts a SoulLink – enter their code and your app fetches the run.'), 'join')}
         ${choice('play', t('onb.startSolo', 'Just look around'), t('onb.startSoloText', 'To the library – the “First steps” guide shows the way whenever you’re ready.'), 'solo')}

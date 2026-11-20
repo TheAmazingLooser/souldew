@@ -18,6 +18,8 @@
 //   raidcap:<slot>     each player's: { v, at, game: { gen, ok, why } } – this build knows raids, and whether the game
 //                      they play now can take part (older 3.0 builds never write it: they get no invite)
 
+import { MAX_PLAYERS, isSlot } from './slots.mjs';
+
 /** The capability a build announces (raidcap:<slot>.v ≥ RAID_VERSION). */
 export const RAID_VERSION = 1;
 /** 100 % of a pool, in basis points (integers only: every computer must compute exactly the same). */
@@ -31,7 +33,7 @@ export const RAID = {
   goneMs: 30000, // no partner of the raid reachable this long: this player leaves (their game is left as it is)
   verifyMs: 900, // a write is read back once the page's memory mirror has caught up
   maxEvents: 600, // per player and raid (a long battle has a few dozen)
-  maxPlayers: 4,
+  maxPlayers: MAX_PLAYERS, // every player of the run may join – the pool is per opponent slot, not per player
   keepMs: 12 * 3600000, // an unfinished raid older than this is over
 };
 export const DOC_PREFIX = 'raid:';
@@ -40,8 +42,7 @@ export const raidKey = (id) => `${DOC_PREFIX}${id}`;
 export const seatKey = (id, slot) => `${DOC_PREFIX}${id}:${slot}`;
 export const capKey = (slot) => `${CAP_PREFIX}${slot}`;
 
-const SLOTS = ['p1', 'p2', 'p3', 'p4'];
-const okSlot = (s) => SLOTS.includes(s);
+const okSlot = isSlot;
 export const okId = (id) => typeof id === 'string' && /^[0-9a-f]{8,24}$/.test(id);
 const int = (x, lo, hi) => (Number.isInteger(x) && x >= lo && x <= hi ? x : null);
 const OUT_WHY = ['wiped', 'left', 'desync', 'quit', 'late', 'gone', 'unsupported'];
@@ -107,7 +108,7 @@ export function raidsIn(doc) {
     if (raid) out[k] = { raid, seats: {} };
   }
   for (const [k, v] of Object.entries(all)) {
-    const m = k.match(/^([0-9a-f]{8,24}):(p[1-4])$/);
+    const m = k.match(/^([0-9a-f]{8,24}):(p[1-5])$/);
     if (!m || !out[m[1]] || !out[m[1]].raid.players.includes(m[2])) continue;
     const seat = cleanSeat(v);
     if (seat) out[m[1]].seats[m[2]] = seat;

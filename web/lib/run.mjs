@@ -15,7 +15,7 @@ import { hostSlotOf, canEditRules, SOULLINK_RULE_KEYS } from '/shared/hostrules.
 import { cleanSummary } from '/shared/monstats.mjs';
 
 export { ALL_SLOTS, slotsOf, runMode, isNuzlocke, isTogether, othersOf, runSection, DEFAULT_RULES, RULE_PRESETS, NUZLOCKE_RULES, hostSlotOf, canEditRules };
-// Runs from before 1–4 players were always a pair – the default where no slots/manifest are passed.
+// Runs from before 1–5 players were always a pair – the default where no slots/manifest are passed.
 const PAIR = ['p1', 'p2'];
 
 /** A player's live data counts as current this long – older means they stopped playing (or closed the app). */
@@ -1164,7 +1164,7 @@ function dupeInPass(doc, manifest, rd, species, slot, exceptArea, writes) {
   const found = dupeOf(doc, manifest, rd, species, slot, exceptArea);
   if (found && !found.missed) return found;
   for (const [k, e] of Object.entries(writes)) {
-    const m = /^enc:(.+):(p[1-4])$/.exec(k);
+    const m = /^enc:(.+):(p[1-5])$/.exec(k);
     if (!m || m[1] === exceptArea || (r.dupes !== 'both' && m[2] !== slot)) continue;
     if (e?.outcome === 'caught' && e.species && sameDupe(r, rd, species, slot, e.species, m[2])) return { area: m[1], slot: m[2] };
   }

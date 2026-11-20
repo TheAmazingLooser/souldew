@@ -1,7 +1,7 @@
 // Electron shell guards: navigation origin checks, external links, permissions, IPC senders.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sameOrigin, safeExternalUrl, subframeNavigationAllowed, permissionAllowed, isTrustedIpcSender, APP_PERMISSIONS } from '../electron/guards.mjs';
+import { sameOrigin, safeExternalUrl, appOverlayUrl, subframeNavigationAllowed, permissionAllowed, isTrustedIpcSender, APP_PERMISSIONS } from '../electron/guards.mjs';
 
 const APP = 'http://localhost:47390';
 
@@ -23,6 +23,17 @@ test('safeExternalUrl only passes https without credentials', () => {
     'https://user:pw@example.com/', 'https://user@example.com/', 'ftp://x/', 'x-apple.systempreferences:', 'https://', 42, null,
     `https://example.com/${'a'.repeat(5000)}`,
   ]) assert.equal(safeExternalUrl(bad), null, String(bad).slice(0, 60));
+});
+
+test('appOverlayUrl lets exactly the app\'s own overlay page through (the TV overview in the system browser)', () => {
+  assert.equal(appOverlayUrl(`${APP}/overlay?run=current&w=tv`, APP), `${APP}/overlay?run=current&w=tv`);
+  assert.equal(appOverlayUrl(`${APP}/overlay`, APP), `${APP}/overlay`);
+  for (const bad of [
+    `${APP}/api/runs/current/overlay`, `${APP}/api/v1/runs/current`, `${APP}/`, `${APP}/overlay.html`, `${APP}/overlay/x`,
+    `${APP}/overlay#x`, 'http://localhost:47391/overlay', 'http://example.com/overlay', `${APP}@evil.com/overlay`,
+    'http://user:pw@localhost:47390/overlay', 'file:///overlay', 'javascript:alert(1)', 42, null, `${APP}/overlay?${'a'.repeat(5000)}`,
+  ]) assert.equal(appOverlayUrl(bad, APP), null, String(bad).slice(0, 60));
+  assert.equal(appOverlayUrl(`${APP}/overlay`, null), null, 'no server yet');
 });
 
 test('subframes stay on the app origin', () => {

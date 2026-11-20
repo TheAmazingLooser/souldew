@@ -20,6 +20,9 @@
 // SoulLink – 2.8 drops the unknown mode (its checkPack: "damaged") or, worse, a build that ignored it would track
 // encounters and kill Pokémon in the player's own game. A Play together travels as @5, which 2.8.x refuses with
 // "update to 3.0.0" (their packFormatState says 'newer').
+// A fifth player (p5, shared/slots.mjs) is new after 3.0.0: an app that knows p1–p4 only would drop that player while
+// reading the pack (its checkPack keeps p1–p4) and build, track and sync a run of four. A run with p5 travels as @6,
+// which those apps refuse with "update to FIVE_PLAYERS_MIN_VERSION"; runs of up to four keep their format.
 import { shinyKnownTo280 } from './shiny.mjs';
 import { TMS_FOLLOW_MOVES } from './randomizer-options.mjs';
 
@@ -28,10 +31,14 @@ export const PACK_FORMAT_SHINY = 'soullink-studio/run-pack@2';
 export const PACK_FORMAT_SHINY_ANY = 'soullink-studio/run-pack@3';
 export const PACK_FORMAT_TMS = 'soullink-studio/run-pack@4';
 export const PACK_FORMAT_TOGETHER = 'soullink-studio/run-pack@5';
+/** A run with a fifth player (p5) – SoulLink or Play together. */
+export const PACK_FORMAT_FIVE = 'soullink-studio/run-pack@6';
 /** Formats this app reads. */
-export const PACK_FORMATS = [PACK_FORMAT, PACK_FORMAT_SHINY, PACK_FORMAT_SHINY_ANY, PACK_FORMAT_TMS, PACK_FORMAT_TOGETHER];
+export const PACK_FORMATS = [PACK_FORMAT, PACK_FORMAT_SHINY, PACK_FORMAT_SHINY_ANY, PACK_FORMAT_TMS, PACK_FORMAT_TOGETHER, PACK_FORMAT_FIVE];
 /** The first version that knows Play together. */
 export const TOGETHER_MIN_VERSION = '3.0.0';
+/** The first version that keeps a fifth player. */
+export const FIVE_PLAYERS_MIN_VERSION = '3.1.0';
 /** The first version that reads a pack with a shiny rate (one of the presets). */
 export const SHINY_MIN_VERSION = '2.8.0';
 /** The first version that reads a pack with any other shiny rate. */
@@ -45,8 +52,18 @@ export const needsTmsFollow = (m) => m?.randomizer?.enabled !== false && m?.rand
 /** Does the SoulLink's host want nothing to count before the first Poké Balls – a rule 2.8.2 apps don't keep? */
 export const needsBallsRule = (m) => m?.mode !== 'nuzlocke' && m?.rules?.startAtBalls === true;
 
-/** What a run pack of manifest `m` needs: its format and, for a new format, the version that reads it. */
+/**
+ * Does the run have a fifth player – one an app that knows p1–p4 only would drop? (A Nuzlocke is p1 alone, whatever
+ * its manifest carries.)
+ */
+export const needsFivePlayers = (m) => m?.mode !== 'nuzlocke' && !!(m?.players && typeof m.players === 'object' && m.players.p5);
+
+/**
+ * What a run pack of manifest `m` needs: its format and, for a new format, the version that reads it. The newest need
+ * wins: every format after @1 is read by every later version, so the latest one a run needs covers all the others.
+ */
 export function packFormatOf(m) {
+  if (needsFivePlayers(m)) return { format: PACK_FORMAT_FIVE, minVersion: FIVE_PLAYERS_MIN_VERSION };
   if (m?.mode === 'together') return { format: PACK_FORMAT_TOGETHER, minVersion: TOGETHER_MIN_VERSION };
   if (needsTmsFollow(m) || needsBallsRule(m)) return { format: PACK_FORMAT_TMS, minVersion: TMS_MIN_VERSION };
   if (!m?.shiny) return { format: PACK_FORMAT };

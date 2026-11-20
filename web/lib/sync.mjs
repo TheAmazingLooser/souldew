@@ -1,4 +1,4 @@
-// Live link between the players of a run (1–4: p1..p4). Two transports run side by side:
+// Live link between the players of a run (1–5: p1..p5). Two transports run side by side:
 //  1. Trystero (WebRTC, signalling over public Nostr relays) – direct, fast, end-to-end encrypted. One room
 //     per run; every player is a peer in it (a full mesh), document ops go to all of them.
 //  2. MQTT relay over WSS (public brokers) – works behind any NAT and keeps an encrypted,
@@ -62,11 +62,12 @@ const SCREEN = {
   maxBytes: 40 * 1024, // … and are dropped above this
   resendSame: 6000, // an unchanged picture is resent only this often (keeps the "x s ago" honest)
   streamGrace: 8000, // viewer: announced video that hasn't arrived after this long → ask for pictures
-  // sender: video bitrate per watcher – full while one or two watch, then shared so three watchers (a four-player run
-  // where everyone watches everyone) cost about as much upload as two: each player also decodes up to three videos
+  // sender: video bitrate per watcher – full while one or two watch, then shared so three or four watchers (a four- or
+  // five-player run where everyone watches everyone) cost about as much upload as two: each player also decodes up to
+  // four videos. The floor stays under budget / 4, so a five-player run never uploads more than the budget.
   videoBitrate: 400000,
   videoBudget: 900000,
-  videoMinBitrate: 250000,
+  videoMinBitrate: 225000,
 };
 
 /** Video bitrate for each of `n` watchers' peers (bps). */
@@ -104,7 +105,7 @@ const P2P_RETRY = 90000; // P2P down while the relay hears a partner → rejoin 
 // P2P up to some partners but not to another one that the relay hears: rejoining drops the working links for a
 // moment (and their video), and the missing player retries from their side anyway – so only now and then.
 const P2P_PARTIAL_RETRY = 5 * 60000;
-const ALL_SLOTS = ['p1', 'p2', 'p3', 'p4']; // when the caller doesn't pass the run's slots
+const ALL_SLOTS = ['p1', 'p2', 'p3', 'p4', 'p5']; // when the caller doesn't pass the run's slots (shared/slots.mjs ALL_SLOTS)
 const RETAINED_FRESH = 35000; // a retained "online" counts only when it is younger than this (by its own timestamp)
 /** No sign of life for this long → the partner counts as gone (app.mjs uses the same window). */
 export const PARTNER_TTL = 45000;

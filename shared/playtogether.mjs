@@ -1,4 +1,4 @@
-// "Play together" (3.0, run mode 'together'): 2–4 players in their own normal games – trades and battles by link,
+// "Play together" (3.0, run mode 'together'): 2–5 players in their own normal games – trades and battles by link,
 // Shared World, raids, gifts, wagers, rock-paper-scissors – without a challenge. It is a run like a SoulLink (invite
 // code, the run's peer channel, the board, the host's choices), with three differences:
 //
