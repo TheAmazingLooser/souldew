@@ -192,7 +192,9 @@ test('a rotated refresh token is in the store before the refresh counts (quittin
 // ---- the local server -------------------------------------------------------------------------------------------------
 
 const H = { 'x-soullink': '1', 'content-type': 'application/json' };
-const get = (base, p) => fetch(base + p, { headers: H, signal: AbortSignal.timeout(3000) }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }));
+// (15 s: a fresh server's first answer took over 3 s on a busy Windows runner with Node 22 – a request held by the
+// keychain prompt still never answers, so a hang still fails)
+const get = (base, p) => fetch(base + p, { headers: H, signal: AbortSignal.timeout(15000) }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }));
 
 test('server start never waits for the keychain: up at once, "signed out" while a prompt is open, signed in once it is answered', async () => {
   await writeSaved();

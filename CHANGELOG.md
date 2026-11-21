@@ -2,7 +2,7 @@
 
 `npm run release` takes the release notes from the section of the version being released.
 
-## Unreleased
+## 3.2.0
 
 - **Checkpoints – go back to the last one.** A new rule (board › Rules › Checkpoints, on for new runs): each computer
   keeps a copy of its player's game – the in-game save and “where you left off” – and of the board the moment that
