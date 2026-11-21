@@ -31,6 +31,11 @@ export const DEFAULT_RULES = {
   // standard Nuzlocke rules start once you can catch. Off here, so runs from before keep counting from the start; a new
   // run takes NEW_RUN_RULES.
   startAtBalls: false,
+  // checkpoints (shared/checkpoints.mjs): when every player has their first Poké Balls, and again with every badge
+  // everyone has, each computer keeps a copy of its player's game – and anyone can take the whole run back to the latest
+  // one (the groups that died since are alive again). Off here, so runs from before stay as they are; a new run takes
+  // NEW_RUN_RULES.
+  checkpoints: false,
   // trades and battles between the players in a link session (docs/MULTIPLAYER.md): allowed unless the host switched
   // them off ('on' | 'off'); `linkBattleDeaths`: a link battle's knocked-out Pokémon count as deaths (off: just for fun)
   linkTrades: 'on',
@@ -88,7 +93,7 @@ export function cheatSetOf(groups) {
 }
 
 /** What a new run starts with where it differs from DEFAULT_RULES (which older runs fall back to). */
-export const NEW_RUN_RULES = { startAtBalls: true, cheatSet: 'all' };
+export const NEW_RUN_RULES = { startAtBalls: true, checkpoints: true, cheatSet: 'all' };
 
 // Solo Nuzlocke rules. A preset only sets the rule toggles; tool settings (autoAssign, sounds) stay as they are.
 const CLASSIC = {
@@ -119,7 +124,7 @@ export const NUZLOCKE_RULES = { ...CLASSIC, autoAssign: true, sounds: true };
 export const TOGETHER_RULE_KEYS = ['linkTrades', 'linkBattles', 'linkWagers', 'linkWagerCap', 'raids', 'itemGifts', 'cheats', 'cheatSet', 'typeHelp'];
 export const TOGETHER_FIXED = {
   typeClause: 'off', dupes: 'off', missedDupes: false, shinyClause: false, gifts: 'free', giftsCount: false, levelCaps: false,
-  failKillsPair: false, autoAssign: false, autoDeath: false, lives: 0, livesPool: 'shared', startAtBalls: false,
+  failKillsPair: false, autoAssign: false, autoDeath: false, lives: 0, livesPool: 'shared', startAtBalls: false, checkpoints: false,
   // a link battle or a raid is just for fun: nothing that goes down there "dies" – nothing ever does in this mode
   linkBattleDeaths: false, raidDeaths: false,
   // the save is the player's own library save (shared/playtogether.mjs › save model): importing one is done in the

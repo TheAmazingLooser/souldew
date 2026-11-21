@@ -639,6 +639,7 @@ const switchLabels = (n) => ({
   autoDeath: n > 2 ? msg('rules.autoDeathGroup', 'A linked Pokémon that faints (live) kills its whole group automatically')
     : msg('rules.autoDeath', 'A linked Pokémon that faints (live) kills the pair automatically'),
   startAtBalls: msg('rules.balls', 'Nothing counts before your first Poké Balls'),
+  checkpoints: msg('rules.checkpoints', 'Checkpoints: go back to the last one'),
   linkTrades: msg('rules.linkTrades', 'Trades between us (link)'),
   linkBattles: msg('rules.linkBattles', 'Battles between us (link)'),
   linkBattleDeaths: msg('rules.linkBattleDeaths', 'Losing a link battle counts as deaths'),

@@ -19,7 +19,8 @@ import { RestartModal } from './restart.mjs';
 import { KeepIntroItem } from './introsave.mjs';
 import { SaveImportDialog } from './saveimport.mjs';
 import { useStreamer } from '../lib/streamer.mjs';
-import { NuzlockeRules, Choice, TypeHelpRule, LivesRule, SoulLinkRules, SoulLinkAuto, HostRulesNote, BallsRule, LinkRules, GiftRule, RaidRules } from './nuzrules.mjs';
+import { NuzlockeRules, Choice, TypeHelpRule, LivesRule, SoulLinkRules, SoulLinkAuto, HostRulesNote, BallsRule, CheckpointRule, LinkRules, GiftRule, RaidRules } from './nuzrules.mjs';
+import { CheckpointStatus } from './checkpoints.mjs';
 import { ShareButton, HallOfFame } from './liveshare.mjs';
 import { deathEvent } from '../lib/liveshare.mjs';
 import { LinkButtons, LinkGroupButton, HeadToHead, linkUnavailable } from './linkplay.mjs';
@@ -969,6 +970,11 @@ export function RulesTab() {
       <h2>${t('rules.ballsTitle', 'When the rules start')}</h2>
       <${BallsRule} value=${r.startAtBalls} players=${n} onChange=${(v) => set({ startAtBalls: v })} disabled=${locked} />
       ${r.startAtBalls && html`<${BallsStatus} />`}
+    </section>
+    <section class="panel stack">
+      <h2>${t('rules.checkpointsTitle', 'Checkpoints')}</h2>
+      <${CheckpointRule} value=${r.checkpoints} players=${n} onChange=${(v) => set({ checkpoints: v })} disabled=${locked} />
+      <${CheckpointStatus} />
     </section>
     <section class="panel stack">
       <h2>${t('lives.title', 'Lives')}</h2>

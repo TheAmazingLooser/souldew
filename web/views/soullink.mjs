@@ -19,7 +19,7 @@ import { NEW_RUN_RULES } from '/shared/rules.mjs';
 import { suggestSlot } from '../lib/invitecode.mjs';
 import { Board, InviteBody } from './board.mjs';
 import { JoinCode } from './invitecode.mjs';
-import { NuzlockeRules, TypeHelpRule, LivesRule, SoulLinkRules, SoulLinkAuto, RulesSummary, BallsRule, LinkRules, GiftRule, RaidRules } from './nuzrules.mjs';
+import { NuzlockeRules, TypeHelpRule, LivesRule, SoulLinkRules, SoulLinkAuto, RulesSummary, BallsRule, CheckpointRule, LinkRules, GiftRule, RaidRules } from './nuzrules.mjs';
 import { RAID_SYSTEMS } from '/shared/live/raidhp.mjs';
 import { linkUnavailable } from '/shared/link.mjs';
 import { soulLinkRulesFrom, hostSlotOf } from '/shared/hostrules.mjs';
@@ -623,6 +623,8 @@ function NewRun({ gameId, hackId, patchPick, romPick, friendPick, from, mode: se
   const [typeHelp, setTypeHelp] = useState(() => from?.rules?.typeHelp !== false);
   // nothing counts before the first Poké Balls – on for a new run (a restart keeps an old run's "off")
   const [startAtBalls, setStartAtBalls] = useState(() => (typeof from?.rules?.startAtBalls === 'boolean' ? from.rules.startAtBalls : NEW_RUN_RULES.startAtBalls));
+  // checkpoints to go back to (shared/checkpoints.mjs) – on for a new run (a restart keeps an old run's "off")
+  const [checkpoints, setCheckpoints] = useState(() => (typeof from?.rules?.checkpoints === 'boolean' ? from.rules.checkpoints : NEW_RUN_RULES.checkpoints));
   // the lives rule (off unless switched on; a restart keeps the old run's lives)
   const [lives, setLives] = useState(() => ({ lives: from?.rules?.lives > 0 ? from.rules.lives : 0, livesPool: from?.rules?.livesPool === 'player' ? 'player' : 'shared' }));
   // a SoulLink's rules – every one of them, the host's call for everyone (shared/hostrules.mjs); a new attempt starts
@@ -734,7 +736,7 @@ function NewRun({ gameId, hackId, patchPick, romPick, friendPick, from, mode: se
         gameId: game?.variantOf || game?.id || null, gameTitle: hack?.name || customHack || (game ? gameTitle(game) : rom.title), hackId: hack?.id || null,
         hackName: !hack && customHack ? customHack : undefined,
         name: numberedName(defaultRunName(players, mode), status?.runs),
-        rules: solo ? { ...nzRules, ...lives, typeHelp, startAtBalls } : slRules,
+        rules: solo ? { ...nzRules, ...lives, typeHelp, startAtBalls, checkpoints } : slRules,
         shiny,
         ...(intro && fromIntro ? { introSave: true, introSlot: 'p1' } : {}),
       });
@@ -885,6 +887,7 @@ function NewRun({ gameId, hackId, patchPick, romPick, friendPick, from, mode: se
       ${solo ? html`<p class="small muted">${t('new.rulesHint', 'You can change them later on the board (Rules tab).')}</p>
         <${NuzlockeRules} variant="wizard" value=${nzRules} onChange=${(patch) => setNzRules((v) => ({ ...v, ...patch }))} />
         <div class="rule-sep"><${BallsRule} value=${startAtBalls} players=${1} onChange=${setStartAtBalls} /></div>
+        <div class="rule-sep"><${CheckpointRule} value=${checkpoints} players=${1} onChange=${setCheckpoints} /></div>
         <div class="rule-sep"><${TypeHelpRule} value=${typeHelp} solo=${true} onChange=${setTypeHelp} /></div>
         <div class="rule-sep"><${LivesRule} variant="wizard" value=${lives.lives} pool=${lives.livesPool} players=${1} onChange=${(patch) => setLives((v) => ({ ...v, ...patch }))} /></div>`
         : html`<p class="small muted">${count > 2 ? t('new.rulesHostGroup', 'You’re the host: these rules apply to all of you, and only you can change them later (board › Rules). Every change shows up in the log for everyone.')
@@ -894,6 +897,7 @@ function NewRun({ gameId, hackId, patchPick, romPick, friendPick, from, mode: se
         ${RAID_SYSTEMS.includes(inspect?.patched?.system || rom?.system) && html`<div class="rule-sep"><${RaidRules} value=${slRules} onChange=${patchSl} /></div>`}
         <div class="rule-sep"><${GiftRule} value=${slRules} onChange=${patchSl} /></div>
         <div class="rule-sep"><${BallsRule} value=${slRules.startAtBalls} players=${count} onChange=${(v) => patchSl({ startAtBalls: v })} /></div>
+        <div class="rule-sep"><${CheckpointRule} value=${slRules.checkpoints} players=${count} onChange=${(v) => patchSl({ checkpoints: v })} /></div>
         <div class="rule-sep"><${TypeHelpRule} value=${slRules.typeHelp} onChange=${(v) => patchSl({ typeHelp: v })} /></div>
         <div class="rule-sep"><${LivesRule} variant="wizard" value=${slRules.lives} pool=${slRules.livesPool} players=${count} onChange=${patchSl} /></div>
         <div class="rule-sep stack-s"><b class="small">${t('rules.auto', 'Automatic')}</b><${SoulLinkAuto} value=${slRules} onChange=${patchSl} players=${count} /></div>`}

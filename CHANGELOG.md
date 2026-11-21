@@ -2,6 +2,18 @@
 
 `npm run release` takes the release notes from the section of the version being released.
 
+## Unreleased
+
+- **Checkpoints – go back to the last one.** A new rule (board › Rules › Checkpoints, on for new runs): when every
+  player has their first Poké Balls, and again whenever everyone has one more badge, each computer keeps a copy of its
+  player's game – the in-game save and “where you left off” – and of the board. After a wipe (or any death you'd rather
+  undo), anyone presses “Back to …” on the board or in the “run is over” notice: every player's game goes back to that
+  moment, the linked Pokémon that died since are alive again, the catches since are undone, lives come back and a run
+  that ended goes on. A running game closes and starts again from the checkpoint by itself. The log keeps what
+  happened, and each computer keeps the game it replaced (the run folder's `checkpoints/_before`). The first checkpoint
+  needs “Nothing counts before your first Poké Balls”; badge checkpoints need games whose badges souldew reads. Everyone
+  in the run needs this version.
+
 ## 3.1.0
 
 - **Five players.** A SoulLink or Play together now takes up to five players: the new-run wizards offer 2 to 5, the

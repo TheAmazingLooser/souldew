@@ -13,6 +13,8 @@ import { ShareButton, HallOfFame } from './liveshare.mjs';
 import { IntroSaveOption, useIntroSave } from './introsave.mjs';
 import { endEvent } from '../lib/liveshare.mjs';
 import { numberedName, baseName, newAttempt, restartPlan, RESTART_KEY, CLAIM_TTL } from '/shared/restart.mjs';
+import { GoBackButton } from './checkpoints.mjs';
+import { checkpointsOn, checkpointState } from '../lib/checkpoints.mjs';
 
 /**
  * r: the old run (status list entry or manifest). rules: its live doc rules, if at hand (board).
@@ -219,11 +221,14 @@ export function RunOverNotice({ status, onClose }) {
   // a Nuzlocke's summary: its own numbers (run.mjs runStats); a SoulLink counts its groups
   const st = solo ? runStats(doc, manifest, 'p1') : null;
   const killer = st?.deadliest?.[0];
+  // checkpoints (web/views/checkpoints.mjs): going back to the latest one comes first – a new attempt starts from nothing
+  const canGoBack = checkpointsOn(doc, manifest) && !!checkpointState(doc, manifest, me).latest;
   return html`<${Modal} open=${true} onClose=${onClose} title=${won ? t('over.wonTitle', 'Run won!') : t('over.failedTitle', 'Run failed')}
     footer=${html`${!won && html`<${ShareButton} event=${endEvent(manifest, status)} />`}${!won && html`<button class="btn ghost" onClick=${() => { resumeRun(doc, me); onClose(); }}
         title=${t('over.resumeHint', 'Undo: the run goes on as before, tracking resumes.')}>${t('over.resume', 'Mistake – play on')}</button>`}
       <button class="btn ghost" onClick=${() => { onClose(); navigate('soullink', { run: manifest.id }); }}>${t('over.board', 'To the board')}</button>
-      ${!won && html`<button class="btn primary" onClick=${() => setRestart(true)}><${Icon} name="reset" size=${14} />${t('over.again', 'New attempt …')}</button>`}`}>
+      ${!won && html`<${GoBackButton} primary onDone=${onClose} />`}
+      ${!won && html`<button class=${`btn ${canGoBack ? 'ghost' : 'primary'}`} onClick=${() => setRestart(true)}><${Icon} name="reset" size=${14} />${t('over.again', 'New attempt …')}</button>`}`}>
     <div class=${`run-over ${won ? 'won' : 'failed'}`}>
       ${team.length > 0 && html`<div class="run-over-team">${team.map((m) => html`<${Sprite} id=${m.species} size=${48} gen=${gen} />`)}</div>`}
       <p class="run-over-text">${text}</p>
@@ -234,7 +239,8 @@ export function RunOverNotice({ status, onClose }) {
         st.bossesBeaten != null ? t('over.bosses', 'Bosses beaten: {n}', { n: st.bossesBeaten }) : null,
         killer ? t('over.deadliest', 'Deadliest opponent: {name} ({n}×)', { name: speciesName(killer.species), n: killer.kills }) : null,
       ].filter(Boolean).join(' · ')}</p>`}
-      ${!won && html`<p class="small faint">${t('over.stopped', 'Tracking is stopped – nothing is recorded anymore until you start a new attempt or play on.')}</p>`}
+      ${!won && html`<p class="small faint">${canGoBack ? t('over.stoppedCp', 'Tracking is stopped – nothing is recorded anymore until you go back to the checkpoint, start a new attempt or play on.')
+        : t('over.stopped', 'Tracking is stopped – nothing is recorded anymore until you start a new attempt or play on.')}</p>`}
       ${won && html`<${HallOfFame} status=${status} onLeave=${onClose} />`}
     </div>
   <//>`;

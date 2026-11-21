@@ -43,6 +43,7 @@ import { useStreamer } from './lib/streamer.mjs';
 import { UpdateBanner } from './views/update.mjs';
 import { DeathAlert } from './views/session-info.mjs';
 import { RestartOffer, RunOverNotice } from './views/restart.mjs';
+import { useCheckpoints, resetPending } from './lib/checkpoints.mjs';
 import { FirstStepsPill } from './views/firststeps.mjs';
 import { useCoffeeFx, CoffeeFx } from './views/coffee.mjs';
 import { LicenseNag } from './views/nag.mjs';
@@ -747,6 +748,9 @@ function App() {
   const applySnap = useCallback((snap, { notify = true, battle = null, held = null } = {}) => {
     if (!runDoc) return null;
     const doc = runDoc;
+    // Going back to a checkpoint (web/lib/checkpoints.mjs): until this player's game is back, what it shows is the game
+    // from after the checkpoint – none of it counts.
+    if (resetPending(doc, me)) return null;
     // A link session (docs/MULTIPLAYER.md › rules): what the game shows meanwhile isn't the run's – a link battle (also
     // one fought in a "trade" session: the Colosseum is next door) would count deaths and wipes, a trade screen shuffles
     // the party. Nothing of it is applied; the first and the last team it showed make the trade's log entry, and the run
@@ -789,13 +793,17 @@ function App() {
   // The play view between snapshots (a reset, the title screen, the game closed): the held deaths it no longer holds
   // (`keep`: the ones it still does) are revealed now – recorded already, they never go away.
   const revealDeaths = useCallback((keep = null) => {
-    if (!runDoc || !me || !Object.keys(runDoc.scan(`${HELD_PREFIX}${me}:`)).length) return null;
+    // (going back to a checkpoint: what the game from after it held never happened – the held records went back too)
+    if (!runDoc || !me || resetPending(runDoc, me) || !Object.keys(runDoc.scan(`${HELD_PREFIX}${me}:`)).length) return null;
     const res = revealHeld(runDoc, manifest, me, { keep });
     afterDeaths(runDoc, res, true);
     return res;
   }, [runDoc, manifest, me]);
   // The play view saw the first Poké Balls in this player's bag: the run's rules start for them (lib/run.mjs startRules).
-  const ballsSeen = useCallback((down = []) => !!runDoc && !!me && startRules(runDoc, manifest, me, 'bag', down), [runDoc, manifest, me]);
+  const ballsSeen = useCallback((down = []) => !!runDoc && !!me && !resetPending(runDoc, me) && startRules(runDoc, manifest, me, 'bag', down), [runDoc, manifest, me]);
+  // Checkpoints (web/lib/checkpoints.mjs): recorded when everyone reached one, this player's copy kept, and this
+  // player's game put back when anyone went back to one
+  useCheckpoints({ doc: runDoc, manifest, me, session: () => sessionRef.current, startSession, endSession, toast });
   // Held deaths nobody holds any more: this player's from a session that ended without revealing them (the app was
   // quit or crashed – the game's next reading reveals them sooner), a partner's whose app went away before it could
   // (older than a couple of minutes; a play view holds one for seconds, a paused game a little longer) – revealed here,
@@ -804,7 +812,8 @@ function App() {
     if (!runDoc || !manifest) return undefined;
     const sweep = () => {
       for (const s of slotsOf(manifest)) {
-        if (!Object.keys(runDoc.scan(`${HELD_PREFIX}${s}:`)).length) continue;
+        // (a player whose game is still going back to a checkpoint: what it held is from after it)
+        if (resetPending(runDoc, s) || !Object.keys(runDoc.scan(`${HELD_PREFIX}${s}:`)).length) continue;
         const res = revealHeld(runDoc, manifest, s, { olderThan: s === me ? 300000 : 120000 });
         if (s === me && res.deaths.length) afterDeaths(runDoc, res, true);
       }

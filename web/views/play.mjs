@@ -58,6 +58,7 @@ import { worldTable, readCamera } from '/shared/world.mjs';
 import { raidFor } from '../lib/raid.mjs';
 import { RaidDock, useRaidShown } from './raid.mjs';
 import { useTogether, makeBag, gameWhy, giftsAllowed } from '../lib/together.mjs';
+import { registerGame, savesHeld } from '../lib/checkpoints.mjs';
 import { GiftDialog, WatchModal, BattleStrip, PingButton, giftWhyText } from './together.mjs';
 /**
  * What each shortcut of Settings › Controls does (lib/controls.mjs HOTKEYS – one entry each, test/controls.test.mjs
@@ -864,7 +865,8 @@ export function GameSession({ session, mode }) {
     const persist = (given) => {
       if (target.link?.discard) return chain; // (a link session that fell out of step: its saves don't count)
       chain = chain.then(async () => {
-        if (!loadedOk || target.link?.discard) return;
+        // (going back to a checkpoint: this is the game from after it – nothing of it is written any more)
+        if (!loadedOk || target.link?.discard || savesHeld(target.stateId)) return;
         const bytes = given || readSave();
         if (!bytes) return;
         const h = saveHash(bytes);
@@ -893,7 +895,7 @@ export function GameSession({ session, mode }) {
     const saveAuto = (st) => {
       if (!st) return;
       chain = chain.then(async () => {
-        if (!loadedOk) return;
+        if (!loadedOk || savesHeld(target.stateId)) return;
         try {
           const body = await st; // (3DS: a promise)
           if (!body) return;
@@ -936,7 +938,7 @@ export function GameSession({ session, mode }) {
     // Page is going away (tab closed, reload, desktop window closed): no time to queue – send now.
     // keepalive bodies are capped at 64 KB, so bigger saves (NDS: 512 KB) are a plain best-effort fetch.
     const onPageHide = () => {
-      if (!loadedOk || target.link?.discard) return;
+      if (!loadedOk || target.link?.discard || savesHeld(target.stateId)) return;
       const bytes = readSave();
       if (!bytes || saveHash(bytes) === lastSave) return;
       try {
@@ -959,6 +961,18 @@ export function GameSession({ session, mode }) {
       saveAuto(st);
       return st;
     });
+    // Checkpoints (web/lib/checkpoints.mjs): a copy of the game for a checkpoint takes the battery save and "where you
+    // left off" as they are right now; going back waits for the uploads on their way, then closes the game.
+    const offCheckpoint = target.kind === 'run' ? registerGame(target.stateId, {
+      flush: async () => {
+        if (stopped || !loadedOk || target.link) return;
+        await persist();
+        if (target.system === '3ds') await autoWhenQuiet(5000);
+        else saveAuto(grabState());
+        await chain.catch(() => {});
+      },
+      settle: () => chain.catch(() => {}),
+    }) : null;
     window.addEventListener('sl-save-now', flushNow);
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onPageHide);
@@ -1291,6 +1305,7 @@ export function GameSession({ session, mode }) {
       const bytes = loadedOk && !target.link?.discard ? readSave() : null;
       if (bytes) persist(bytes);
       if (!lastTaken) saveAuto(loadedOk ? grabState() : null); // (closed another way: the window, a link session's end …)
+      offCheckpoint?.();
     };
   }, [phase, target.key]);
 

@@ -229,6 +229,18 @@ export function BallsRule({ value, onChange, players: n = 1, disabled = false })
     label=${t('rules.balls', 'Nothing counts before your first Poké Balls')} hint=${hint} />`;
 }
 
+/**
+ * Checkpoints (shared/checkpoints.mjs): a copy of every player's game when all of them have their first Poké Balls and
+ * again with every badge everyone has – and anyone can take the run back to the latest one. value: rules.checkpoints.
+ */
+export function CheckpointRule({ value, onChange, players: n = 1, disabled = false }) {
+  const hint = n < 2
+    ? t('rules.checkpointsHintSolo', 'souldew keeps a copy of your game when you get your first Poké Balls and with every badge. After a death or a blackout you can go back to the latest copy: the Pokémon that died since are alive again, the catches since are gone.')
+    : t('rules.checkpointsHint', 'When all of you have your first Poké Balls – and again whenever all of you have one more badge – every computer keeps a copy of its player’s game. Anyone can take the run back to the latest one: every game returns to that moment, the linked Pokémon that died since are alive again, and a run that ended goes on.');
+  return html`<${RuleCheck} checked=${!!value} onChange=${(v) => !disabled && onChange(v)} disabled=${disabled}
+    label=${t('rules.checkpoints', 'Checkpoints: go back to the last one')} hint=${hint} />`;
+}
+
 /** What the lives rule does, for 1 (solo), 2 or 3–5 players and the chosen pool – one text for the wizard and the board. */
 function livesHint(players, pool) {
   if (players < 2) return t('lives.hintSolo', 'Every death costs a life – also one you mark by hand, and a bonus Pokémon. The death that takes the last life ends the run; undoing a death gives its life back.');
@@ -444,6 +456,7 @@ export function RulesSummary({ rules: r, players: n = 2 }) {
     [t('lives.title', 'Lives'), lives],
     [t('rules.sumTypeHelp', 'Type matchup help'), on(r.typeHelp !== false)],
     [t('rules.sumBalls', 'Nothing counts before the first Poké Balls'), on(!!r.startAtBalls)],
+    [t('rules.sumCheckpoints', 'Checkpoints'), on(!!r.checkpoints)],
   ];
   return html`<dl class="rule-summary">${rows.map(([k, v]) => html`<div><dt>${k}</dt><dd>${v}</dd></div>`)}</dl>`;
 }

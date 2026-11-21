@@ -57,6 +57,7 @@ import { randomBytes } from 'node:crypto';
 import { syncTrophies } from './lib/trophies.mjs';
 import { checkImport, replaceSave, undoImport, lastImport, unzipSingleSave, readZipFiles, checkCtrImport, replaceCtrSave, undoCtrImport, ctrSaveArchives } from './lib/saveimport.mjs';
 import { listIntroSaves, introFor, introKeyFor, introKeyForLibrary, publicIntro, keepIntroSave, removeIntroSave, applyIntroSave, introState } from './lib/introsave.mjs';
+import { storeCheckpoint, listCheckpoints, checkpointDoc, restoreCheckpoint } from './lib/checkpoints.mjs';
 import * as liveRuns from './lib/liveruns.mjs';
 import { createAccounts } from './lib/accounts/index.mjs';
 import { isPackagedBuild } from './lib/accounts/enttoken.mjs';
@@ -1594,6 +1595,50 @@ export function startServer({ port = 7373, host = '127.0.0.1', background = true
     // (games whose saves can't be read aren't watched – that would only produce error toasts)
     watchRunSave(m[1], manifest, p);
     return { ok: true, size: bytes.length };
+  });
+
+  // ---- checkpoints (shared/checkpoints.mjs, server/lib/checkpoints.mjs): this player's copy of their game -------------
+  //   GET  /api/runs/:id/checkpoints                    what this computer keeps: [{ id, doc: { at }, slots: { slot: info } }]
+  //   GET  /api/runs/:id/checkpoints/:cp/doc            the run document's entries kept with it
+  //   POST /api/runs/:id/checkpoints/:cp/:slot          body { doc, meta, late } → keep a copy of the game as it is now
+  //   POST /api/runs/:id/checkpoints/:cp/:slot/restore  the game goes back to that copy (not while the player has it open)
+  const checkpointTarget = (runId, slot) => {
+    const t = importTarget(new URL(`http://localhost/?run=${runId}&slot=${slot}`));
+    if (runMode(t.manifest) === 'together') throw httpError(409, 'Play together has no checkpoints', 'checkpointTogether');
+    const key = `run-${runId}-${slot}`; // (web/lib/run.mjs runStateId – the states' id; the 3DS save folder's too)
+    return { ...t, stateKey: keyOf(key), saveRoot: t.system === '3ds' ? join(saveDirFor(key), 'Azahar', 'sdmc', 'Nintendo 3DS') : null };
+  };
+  route('GET', /^\/api\/runs\/([a-f0-9]{8})\/checkpoints$/, (req, m) => {
+    if (!readManifest(m[1])) throw httpError(404, 'Run not found', 'runNotFound');
+    return listCheckpoints(runDir(m[1]));
+  });
+  route('GET', /^\/api\/runs\/([a-f0-9]{8})\/checkpoints\/([a-z0-9]{4,8})\/doc$/, (req, m) => {
+    if (!readManifest(m[1])) throw httpError(404, 'Run not found', 'runNotFound');
+    const d = checkpointDoc(runDir(m[1]), m[2]);
+    if (!d) throw httpError(404, 'This computer has no copy of that checkpoint', 'checkpointMissing');
+    return d;
+  });
+  route('POST', /^\/api\/runs\/([a-f0-9]{8})\/checkpoints\/([a-z0-9]{4,8})\/(p[1-5])$/, async (req, m) => {
+    const body = await readBody(req);
+    const t = checkpointTarget(m[1], m[3]);
+    const doc = body.doc && typeof body.doc === 'object' && !Array.isArray(body.doc) ? body.doc : null;
+    const meta = body.meta && typeof body.meta === 'object' && !Array.isArray(body.meta) ? body.meta : null;
+    const info = storeCheckpoint({ runDir: runDir(m[1]), id: m[2], slot: m[3], savePath: t.path, archive: t.system === '3ds' ? t.archive() : null, saveRoot: t.saveRoot,
+      stateDir: STATE_DIR, stateKey: t.stateKey, doc, meta, late: !!body.late });
+    console.log(`[checkpoints] run ${m[1]} ${m[3]}: kept ${m[2]} (${info.save ? 'save' : 'no save'}, ${info.state ? 'state' : 'no state'})`);
+    return info;
+  });
+  route('POST', /^\/api\/runs\/([a-f0-9]{8})\/checkpoints\/([a-z0-9]{4,8})\/(p[1-5])\/restore$/, async (req, m) => {
+    const t = checkpointTarget(m[1], m[3]);
+    // (the fast or 3DS player still has the save open: the page closes the game first and asks again)
+    const running = t.running();
+    if (running === 'player') throw httpError(409, 'The game is still running – close it first', 'saveGameRunning');
+    const r = restoreCheckpoint({ runDir: runDir(m[1]), id: m[2], slot: m[3], savePath: t.path, archive: t.system === '3ds' ? t.archive() : null, saveRoot: t.saveRoot,
+      stateDir: STATE_DIR, stateKey: t.stateKey });
+    console.log(`[checkpoints] run ${m[1]} ${m[3]}: back to ${m[2]} (${r.save ? 'save' : 'no save'}, ${r.state ? 'state' : 'no state'}; before → ${r.before})`);
+    if (t.path && watcher.paths(m[1])) watcher.read(m[1], true);
+    // an external emulator that is open keeps the game from after the checkpoint in its memory – the page says so
+    return { ...r, emulator: running === 'emulator' };
   });
 
   // ---- intro saves (server/lib/introsave.mjs): a save after the intro that new attempts of the game start from ----
