@@ -1,14 +1,15 @@
-// Checkpoints in the app (shared/checkpoints.mjs): recording one when every player reached it, keeping this
-// computer's copy of its player's game, going back to the latest one, and putting this player's game back when anyone
-// went back. The copies are on the server (server/lib/checkpoints.mjs, /api/runs/:id/checkpoints).
+// Checkpoints in the app (shared/checkpoints.mjs): this computer keeps a copy of its player's game the moment that
+// player reaches a milestone (first Poké Balls, each new badge), records a checkpoint once everyone has, goes back to
+// the latest one, and puts this player's game – and their part of the board – back when anyone went back. The copies
+// are on the server (server/lib/checkpoints.mjs, /api/runs/:id/checkpoints).
 import { useEffect, useRef } from '/vendor/htm-preact.mjs';
 import { api } from './api.mjs';
 import { t } from './i18n.mjs';
 import { feed, msg, rules as getRules, players as getPlayers, isTogether, runStateId } from './run.mjs';
 import { slotsOf } from '/shared/slots.mjs';
 import {
-  RESET_KEY, atKey, haveKey, doneKey, dueCheckpoint, latestOf, pendingReset, snapshotOf, restoreWrites, staleOwnWrites,
-  copiesOf, newResetId, LATE_MS,
+  RESET_KEY, atKey, haveKey, doneKey, dueCheckpoint, latestOf, pendingReset, snapshotOf, planReset, ownPlan, ownMilestone,
+  copyDue, copyFor, copiesFor, copiesOfSlot, momentsOf, rankOf, newResetId, LATE_MS,
 } from '/shared/checkpoints.mjs';
 
 // ---- the running game (web/views/play.mjs) ------------------------------------------------------------------------
@@ -64,48 +65,56 @@ const reachedMsg = (cp, solo) => (cp.kind === 'balls'
 // ---- state of the run's checkpoints ------------------------------------------------------------------------------
 
 const get = (doc) => (k) => doc.get(k, null);
+const latestRankOf = (doc) => {
+  const l = latestOf(doc.scan('cp:at:'));
+  return l ? rankOf(l.id) : -1;
+};
 
 /** Is the rule on for this run? (never in Play together) */
 export const checkpointsOn = (doc, manifest) => !!doc && !!manifest && !isTogether(manifest) && !!getRules(doc, manifest).checkpoints;
 
 /**
- * What the board shows: { latest: { id, kind, n, at } | null, copies: { slot: { at, late } | null }, pending (this
- * player's game still has to go back), reset (the last go-back) }.
+ * What the board shows: { latest: { id, kind, n, at } | null, copies: { slot: { id, at, late } | null } (each player's
+ * copy for it – from the moment they reached it), pending (this player's game still has to go back), reset }.
  */
 export function checkpointState(doc, manifest, me) {
   const latest = latestOf(doc.scan('cp:at:'));
   const slots = slotsOf(manifest);
   return {
     latest,
-    copies: latest ? copiesOf(get(doc), latest.id, slots) : {},
+    copies: latest ? copiesFor(doc.scan('cp:have:'), slots, rankOf(latest.id)) : {},
     pending: pendingReset(get(doc), me),
     reset: doc.get(RESET_KEY, null),
   };
 }
 
-/** This computer's copy of `me`'s game for checkpoint `cp` – the running game written to disk first. */
-async function takeCopy(doc, manifest, me, cp) {
+/**
+ * This computer's copy of `me`'s game for milestone `cp` – the running game written to disk first – with the run
+ * document as it is now. Its time is the player's moment (the deaths after it are undone when going back).
+ */
+async function takeCopy(doc, manifest, me, cp, { late = false } = {}) {
   const stateId = runStateId(manifest, me);
+  const at = Date.now();
   try {
     await games.get(stateId)?.flush?.();
   } catch {
     // copy what is on disk
   }
-  const late = Date.now() - (Number(cp.at) || Date.now()) > LATE_MS;
-  await api.post(`/api/runs/${manifest.id}/checkpoints/${cp.id}/${me}`, { doc: snapshotOf(doc.entries), meta: lsGet(autoKey(stateId)), late });
-  doc.set(haveKey(cp.id, me), { at: Date.now(), ...(late ? { late: true } : {}) });
+  await api.post(`/api/runs/${manifest.id}/checkpoints/${cp.id}/${me}`, { doc: snapshotOf(doc.entries), meta: lsGet(autoKey(stateId)), late, keepFrom: Math.max(0, latestRankOf(doc)) });
+  doc.set(haveKey(cp.id, me), { at, ...(late ? { late: true } : {}) });
 }
 
 /**
- * Go back to the latest checkpoint – for everyone: the board's keys as they were (from this computer's copy of the run
- * document) and the "go back" every computer puts its own game back for. → { id } or throws (.code checkpointMissing:
- * no copy of it here).
+ * Go back to the latest checkpoint – for everyone: the board as it stood when it was complete (this computer's copy of
+ * it), the deaths after their players' own moments undone, and the "go back" every computer puts its own player's game
+ * and part of the board back for. → { id } or throws (.code checkpointMissing: no copy of it here).
  */
 export async function goBack(doc, manifest, me) {
   const latest = latestOf(doc.scan('cp:at:'));
   if (!latest) throw Object.assign(new Error('No checkpoint yet'), { code: 'noCheckpoint' });
   const snap = await api.get(`/api/runs/${manifest.id}/checkpoints/${latest.id}/doc`);
-  const writes = restoreWrites(snap.entries, doc.entries);
+  const moments = momentsOf(doc.scan('cp:have:'), slotsOf(manifest), rankOf(latest.id));
+  const writes = planReset(snap.entries, doc.entries, moments);
   const name = getPlayers(doc, manifest)[me]?.name || me.toUpperCase();
   doc.batch({ ...writes, [RESET_KEY]: { rid: newResetId(), id: latest.id, at: Date.now(), by: me } });
   feed(doc, { type: 'run', slot: me, msg: msg('feed.cpBack', '{name} went back to the checkpoint “{cp}” – every game returns to where it stood then', { name, cp: { key: latest.kind === 'balls' ? 'cp.balls' : 'cp.badge', def: latest.kind === 'balls' ? 'First Poké Balls' : 'Badge {n}', vars: { n: latest.n } } }),
@@ -113,18 +122,25 @@ export async function goBack(doc, manifest, me) {
   return { id: latest.id };
 }
 
+/** The run document kept here with a copy (`slot`) or with the completed checkpoint – null when there is none. */
+const docOf = (manifest, id, slot = null) => api.get(`/api/runs/${manifest.id}/checkpoints/${id}${slot ? `/${slot}` : ''}/doc`).then((d) => d?.entries || null, () => null);
+
 /**
  * Put this player's game back for the "go back" `reset`: its saves are held, a running game of it closes, the server
- * puts the copy back, what this computer wrote meanwhile from the old game goes back too, then the game starts again
- * (if it was running). o: { session, endSession, startSession, toast }. → { ok, missing?, emulator? }
+ * puts their copy back (their first one of the checkpoint or later – the moment they reached it), their part of the
+ * board goes back to that moment, what this computer wrote meanwhile from the old game goes back too, the copies from
+ * after it are forgotten, then the game starts again (if it was running). o: { session, endSession, startSession }.
+ * → { ok, missing?, emulator? }
  */
 async function applyReset(doc, manifest, me, reset, o) {
   const stateId = runStateId(manifest, me);
-  const resetEntry = doc.entries[RESET_KEY];
+  const resetT = doc.entries[RESET_KEY]?.t ?? reset.at;
+  const copy = copyFor(doc.scan('cp:have:'), me, rankOf(reset.id));
   held.add(stateId);
   let restart = null;
   let out = { ok: false };
   try {
+    if (!copy) throw Object.assign(new Error('no copy'), { code: 'checkpointMissing' });
     await games.get(stateId)?.settle?.();
     const s = o.session?.();
     if (s?.target?.runId === manifest.id && s.target.kind === 'run') {
@@ -136,7 +152,7 @@ async function applyReset(doc, manifest, me, reset, o) {
     let res = null;
     for (let i = 0; ; i++) {
       try {
-        res = await api.post(`/api/runs/${manifest.id}/checkpoints/${reset.id}/${me}/restore`);
+        res = await api.post(`/api/runs/${manifest.id}/checkpoints/${copy.id}/${me}/restore`);
         break;
       } catch (e) {
         if (e.code === 'saveGameRunning' && i < 40) {
@@ -147,14 +163,14 @@ async function applyReset(doc, manifest, me, reset, o) {
       }
     }
     lsSet(autoKey(stateId), res.meta || null);
-    // what this computer's game wrote after the go-back (before it heard of it) is from after the checkpoint too
-    try {
-      const snap = await api.get(`/api/runs/${manifest.id}/checkpoints/${reset.id}/doc`);
-      const stale = staleOwnWrites(snap.entries, doc.entries, doc.by, resetEntry?.t ?? reset.at);
-      if (Object.keys(stale).length) doc.batch(stale);
-    } catch {
-      // (no copy of the document here: the go-back's own writes stand)
-    }
+    // this player's part of the board as it stood at their moment (a copy from the first checkpoints version kept only
+    // the checkpoint's board)
+    const snap = await docOf(manifest, reset.id);
+    const own = (await docOf(manifest, copy.id, me)) || snap;
+    const writes = own ? ownPlan({ own, snap, cur: doc.entries, slot: me, device: doc.by, since: resetT, moment: copy.at }) : {};
+    // the copies from after it: a future that is undone (the server dropped them)
+    for (const c of copiesOfSlot(doc.scan('cp:have:'), me)) if (c.rank > copy.rank) writes[haveKey(c.id, me)] = null;
+    if (Object.keys(writes).length) doc.batch(writes);
     out = { ok: true, emulator: !!res.emulator };
   } catch (e) {
     out = { ok: false, missing: e.code === 'checkpointMissing', error: e.message };
@@ -167,19 +183,20 @@ async function applyReset(doc, manifest, me, reset, o) {
 }
 
 /**
- * The app's part (web/app.mjs): records a checkpoint when everyone reached it, keeps this computer's copy of it, and
- * puts this player's game back when anyone went back. o: { doc, manifest, me, session: () => session, startSession,
- * endSession, toast }.
+ * The app's part (web/app.mjs): keeps this computer's copy of its player's game at each milestone they reach, records
+ * a checkpoint when everyone reached it (and keeps the board of that moment), and puts this player's game back when
+ * anyone went back. o: { doc, manifest, me, session: () => session, startSession, endSession, toast }.
  */
 export function useCheckpoints(o) {
   const ref = useRef(o);
   ref.current = o;
-  const busy = useRef({ copy: null, reset: null });
+  const busy = useRef({ copy: null, reset: null, docs: new Set() });
   const { doc, manifest, me } = o;
   useEffect(() => {
     if (!doc || !manifest || !me || isTogether(manifest)) return undefined;
     let gone = false;
-    const check = () => {
+    const again = () => !gone && setTimeout(check, 0);
+    function check() {
       if (gone) return;
       const g = get(doc);
       const slots = slotsOf(manifest);
@@ -191,7 +208,7 @@ export function useCheckpoints(o) {
         busy.current.reset = reset.rid;
         const cur = ref.current;
         applyReset(doc, manifest, me, reset, cur).then((res) => {
-          const cp = { id: reset.id, kind: reset.id === 'balls' ? 'balls' : 'badge', n: Number(String(reset.id).replace(/^badge/, '')) || 0 };
+          const cp = { id: reset.id, kind: reset.id === 'balls' ? 'balls' : 'badge', n: rankOf(reset.id) };
           const who = getPlayers(doc, manifest)[reset.by]?.name || '';
           if (res.ok) {
             cur.toast?.({ kind: 'ok', ttl: 12000, title: t('cp.backTitle', 'Back to “{cp}”', { cp: checkpointName(cp) }),
@@ -203,7 +220,7 @@ export function useCheckpoints(o) {
           }
         }).finally(() => {
           busy.current.reset = null;
-          if (!gone) setTimeout(check, 0);
+          again();
         });
         return;
       }
@@ -216,15 +233,35 @@ export function useCheckpoints(o) {
         const m = reachedMsg(cp, slots.length === 1);
         feed(doc, { type: 'run', slot: me, msg: m, text: t(m.key, m.def, m.vars) }, `cp-${due.id}`);
       }
-      // 3. this computer keeps its copy of the latest checkpoint (once)
       const latest = latestOf(doc.scan('cp:at:'));
-      if (latest && !doc.get(haveKey(latest.id, me), null) && busy.current.copy !== latest.id) {
-        busy.current.copy = latest.id;
-        takeCopy(doc, manifest, me, latest).catch((e) => console.warn('checkpoint copy', e)).finally(() => {
-          busy.current.copy = null;
-        });
+      const latestRank = latest ? rankOf(latest.id) : -1;
+      // 3. the board when it was complete – kept on every computer (whoever goes back takes it from their own)
+      if (latest && !busy.current.docs.has(latest.id)) {
+        busy.current.docs.add(latest.id);
+        api.post(`/api/runs/${manifest.id}/checkpoints/${latest.id}/doc`, { doc: snapshotOf(doc.entries), keepFrom: latestRank })
+          .catch((e) => {
+            busy.current.docs.delete(latest.id);
+            console.warn('checkpoint board', e);
+          });
       }
-    };
+      // 4. this player reached a new milestone: their copy, now – it is where they go back to (one at a time; after a
+      // failed one the next try waits a little)
+      if (busy.current.copy || Date.now() - (busy.current.failedAt || 0) < 30000) return;
+      const haves = doc.scan('cp:have:');
+      const mine = copyDue(haves, me, ownMilestone(g, me, r), latestRank);
+      // (no copy for the latest checkpoint at all – souldew wasn't open when this player got there: one now, late)
+      const want = mine ? { cp: mine, late: false }
+        : latest && !copyFor(haves, me, latestRank) ? { cp: latest, late: Date.now() - (Number(latest.at) || 0) > LATE_MS } : null;
+      if (!want) return;
+      busy.current.copy = want.cp.id;
+      takeCopy(doc, manifest, me, want.cp, { late: want.late }).catch((e) => {
+        busy.current.failedAt = Date.now();
+        console.warn('checkpoint copy', e);
+      }).finally(() => {
+        busy.current.copy = null;
+        again();
+      });
+    }
     const unsub = doc.subscribe((keys) => {
       if (keys.some((k) => k.startsWith('cp:') || k === 'rules' || k.startsWith('balls:') || k.startsWith('live:') || k === 'run:status')) check();
     });

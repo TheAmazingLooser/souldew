@@ -50,7 +50,7 @@ export function GoBackModal({ onClose, onDone }) {
     footer=${html`<button class="btn ghost" disabled=${busy} onClick=${onClose}>${t('common.cancel', 'Cancel')}</button>
       <button class="btn primary" disabled=${busy} onClick=${go}><${Icon} name="reset" size=${14} />${busy ? t('cp.goingBack', 'Going back …') : t('cp.goBack', 'Go back')}</button>`}>
     <p>${n > 1
-      ? t('cp.goBackText', 'Every player’s game goes back to the moment all of you reached “{cp}” ({when}). The linked Pokémon that died since are alive again, the catches since are undone, and a run that ended goes on.', { cp: name, when: ago(cp.at) })
+      ? t('cp.goBackText', 'Each player’s game goes back to the moment that player reached “{cp}” (the last of you {when}). Linked Pokémon that fell after their player’s moment are alive again – one that fell before stays dead –, the catches since are undone, and a run that ended goes on.', { cp: name, when: ago(cp.at) })
       : t('cp.goBackTextSolo', 'Your game goes back to “{cp}” ({when}). The Pokémon that died since are alive again, the catches since are undone, and a run that ended goes on.', { cp: name, when: ago(cp.at) })}</p>
     <p class="small muted">${t('cp.goBackRunning', 'A game that is running closes and starts again from there by itself. Play in an external emulator? Close it without saving first.')}</p>
     ${n > 1 && html`<ul class="small muted">${slots.map((s) => html`<li key=${s}>${copyLine(s, st.copies[s], names[s]?.name || s.toUpperCase(), s === me)}</li>`)}</ul>`}

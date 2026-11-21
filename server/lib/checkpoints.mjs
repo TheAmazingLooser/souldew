@@ -1,9 +1,11 @@
 // Checkpoints of a run (shared/checkpoints.mjs) on this computer: a copy of this computer's player's game at the moment
-// every player reached a milestone, and of the run document as it stood then. Each computer keeps only its own
-// player's copy – the partners' games are on their computers.
+// that player reached a milestone (their first Poké Balls, each new badge), with the run document as it stood then, and
+// the run document of each checkpoint once everyone reached it. Each computer keeps only its own player's games – the
+// partners' are on their computers.
 //
-//   <run>/checkpoints/<id>/doc.json             the run document's restorable entries (the first copy taken here)
+//   <run>/checkpoints/<id>/doc.json             the run document's restorable entries when everyone had reached it
 //   <run>/checkpoints/<id>/<slot>/info.json     { id, slot, at, late, meta, save, state, archiveRel }
+//   <run>/checkpoints/<id>/<slot>/doc.json      the run document's restorable entries at that player's moment
 //   <run>/checkpoints/<id>/<slot>/save.sav      the battery save (none: the game had never been saved in-game)
 //   <run>/checkpoints/<id>/<slot>/save3ds/      3DS: the game's save folder (data/00000001), timestamps kept
 //   <run>/checkpoints/<id>/<slot>/state.*       "where you left off" (the play view's state, slot 99) with picture and info
@@ -18,8 +20,6 @@ import { writeFileAtomic, httpError } from './fsutil.mjs';
 import { AUTO_SLOT, STATE_EXT, statePath, rotateAutoState } from './statefiles.mjs';
 import { validId, rankOf } from '../../shared/checkpoints.mjs';
 
-/** Checkpoints kept per run (the newest): going back is to the latest – one more for a copy taken a moment late. */
-export const KEEP = 2;
 /** What "go back" replaced, kept per player. */
 export const BEFORE_KEEP = 3;
 const BEFORE = '_before';
@@ -70,20 +70,31 @@ function copyState(from, to) {
   return any;
 }
 
-/** Keep the newest KEEP checkpoints (by rank – later milestones are newer); never the one just written (`keep`). */
-function prune(runDir, keep) {
-  const ids = dirs(checkpointsDir(runDir)).filter(validId).sort((a, b) => rankOf(b) - rankOf(a));
-  const stay = new Set([keep, ...ids.slice(0, KEEP)]);
-  for (const id of ids) if (!stay.has(id)) rmSync(cpDir(runDir, id), { recursive: true, force: true });
+/**
+ * Drop what no go-back can use any more: everything below the latest checkpoint (`keepFrom`, its rank – going back is to
+ * that one, and a player's copy for it is one of it or later). Never `keep` (just written). No `keepFrom`: nothing goes.
+ */
+function prune(runDir, keepFrom, keep) {
+  if (!Number.isInteger(keepFrom) || keepFrom < 0) return;
+  for (const id of dirs(checkpointsDir(runDir)).filter(validId)) if (id !== keep && rankOf(id) < keepFrom) rmSync(cpDir(runDir, id), { recursive: true, force: true });
+}
+
+/** `slot`'s copies from after `rank` – from a future that a go-back to it undid. */
+function dropAfter(runDir, slot, rank) {
+  for (const id of dirs(checkpointsDir(runDir)).filter(validId)) {
+    if (rankOf(id) <= rank) continue;
+    rmSync(slotDir(runDir, id, slot), { recursive: true, force: true });
+    if (!dirs(cpDir(runDir, id)).length && !existsSync(join(cpDir(runDir, id), 'doc.json'))) rmSync(cpDir(runDir, id), { recursive: true, force: true });
+  }
 }
 
 /**
- * Keep this computer's copy of `slot`'s game for checkpoint `id`: the battery save at `savePath` – or, 3DS, the save
- * folder `archive` (under `saveRoot`) –, "where you left off" (`stateDir` / `stateKey`, slot 99) and, the first time,
- * the run document's restorable entries `doc`. Copying again (the same checkpoint once more) replaces the copy.
- * → the info written.
+ * Keep this computer's copy of `slot`'s game for milestone `id`: the battery save at `savePath` – or, 3DS, the save
+ * folder `archive` (under `saveRoot`) –, "where you left off" (`stateDir` / `stateKey`, slot 99) and the run document's
+ * restorable entries `doc` as they are now. Copying again (the same milestone once more) replaces the copy. `keepFrom`:
+ * the latest checkpoint's rank (prune). → the info written.
  */
-export function storeCheckpoint({ runDir, id, slot, savePath = null, archive = null, saveRoot = null, stateDir, stateKey, doc = null, meta = null, late = false, now = Date.now() }) {
+export function storeCheckpoint({ runDir, id, slot, savePath = null, archive = null, saveRoot = null, stateDir, stateKey, doc = null, meta = null, late = false, keepFrom = null, now = Date.now() }) {
   check(id, slot);
   const dir = slotDir(runDir, id, slot);
   const fresh = `${dir}.new-${randomBytes(4).toString('hex')}`;
@@ -104,12 +115,11 @@ export function storeCheckpoint({ runDir, id, slot, savePath = null, archive = n
     const state = copyState((ext) => statePath(stateDir, stateKey, AUTO_SLOT, ext), (ext) => join(fresh, `state.${ext}`));
     const info = { id, slot, at: now, late: !!late, meta: meta && typeof meta === 'object' ? meta : null, save, state, ...(archiveRel ? { archiveRel } : {}) };
     writeFileAtomic(join(fresh, 'info.json'), JSON.stringify(info));
+    // the run document at this player's moment – their own part of the board comes back from it
+    if (doc && typeof doc === 'object') writeFileAtomic(join(fresh, 'doc.json'), JSON.stringify({ at: now, entries: doc }));
     rmSync(dir, { recursive: true, force: true });
     renameSync(fresh, dir);
-    // the run document as it stood then: the first copy taken on this computer is the one nearest the moment
-    const docPath = join(cpDir(runDir, id), 'doc.json');
-    if (doc && typeof doc === 'object' && !existsSync(docPath)) writeFileAtomic(docPath, JSON.stringify({ at: now, entries: doc }));
-    prune(runDir, id);
+    prune(runDir, keepFrom, id);
     return info;
   } catch (e) {
     rmSync(fresh, { recursive: true, force: true });
@@ -117,14 +127,30 @@ export function storeCheckpoint({ runDir, id, slot, savePath = null, archive = n
   }
 }
 
-/** The checkpoints kept here: [{ id, doc: { at } | null, slots: { slot: info } }], the newest first. */
+/**
+ * The run document's entries `doc` when checkpoint `id` was complete (everyone had reached it) – the first one this
+ * computer saw is kept. → { at }.
+ */
+export function storeCheckpointDoc({ runDir, id, doc, keepFrom = null, now = Date.now() }) {
+  check(id);
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) throw httpError(400, 'Invalid checkpoint', 'badCheckpoint');
+  const p = join(cpDir(runDir, id), 'doc.json');
+  if (!existsSync(p)) {
+    mkdirSync(cpDir(runDir, id), { recursive: true });
+    writeFileAtomic(p, JSON.stringify({ at: now, entries: doc }));
+  }
+  prune(runDir, keepFrom, id);
+  return { at: readJson(p)?.at ?? now };
+}
+
+/** The checkpoints kept here: [{ id, doc: { at } | null, slots: { slot: info + doc } }], the newest first. */
 export function listCheckpoints(runDir) {
   const out = [];
   for (const id of dirs(checkpointsDir(runDir)).filter(validId)) {
     const slots = {};
     for (const s of dirs(cpDir(runDir, id)).filter((x) => SLOT_RE.test(x))) {
       const info = readJson(join(slotDir(runDir, id, s), 'info.json'));
-      if (info) slots[s] = info;
+      if (info) slots[s] = { ...info, doc: existsSync(join(slotDir(runDir, id, s), 'doc.json')) };
     }
     const doc = readJson(join(cpDir(runDir, id), 'doc.json'));
     out.push({ id, doc: doc ? { at: doc.at ?? null } : null, slots });
@@ -132,10 +158,10 @@ export function listCheckpoints(runDir) {
   return out.sort((a, b) => rankOf(b.id) - rankOf(a.id));
 }
 
-/** The run document's entries kept with checkpoint `id`, or null. */
-export function checkpointDoc(runDir, id) {
-  check(id);
-  const d = readJson(join(cpDir(runDir, id), 'doc.json'));
+/** The run document's entries kept with checkpoint `id` – when it was complete, or (`slot`) at that player's moment. */
+export function checkpointDoc(runDir, id, slot = null) {
+  check(id, slot ?? undefined);
+  const d = readJson(join(slot ? slotDir(runDir, id, slot) : cpDir(runDir, id), 'doc.json'));
   return d && d.entries && typeof d.entries === 'object' ? d : null;
 }
 
@@ -153,9 +179,10 @@ function keepBefore(runDir, slot, { savePath, archive, stateDir, stateKey, now }
 }
 
 /**
- * Put `slot`'s game back to its copy of checkpoint `id`: the battery save (or 3DS save folder) and "where you left off"
- * – what is there now is kept in `_before` first. A checkpoint taken before the first in-game save has none: the save
- * there now goes too (into `_before`), so the state is resumed from a game without one, as it was taken.
+ * Put `slot`'s game back to its copy `id`: the battery save (or 3DS save folder) and "where you left off" – what is
+ * there now is kept in `_before` first. A copy taken before the first in-game save has none: the save there now goes
+ * too (into `_before`), so the state is resumed from a game without one, as it was taken. The player's copies from
+ * after it go: that future is undone.
  * savePath / archive (3DS: the save folder now, or null) / saveRoot (3DS: where its folders are), stateDir / stateKey.
  * → { save, state, meta } – `meta` for the play view's note of the state (null: none to resume).
  */
@@ -198,5 +225,6 @@ export function restoreCheckpoint({ runDir, id, slot, savePath = null, archive =
     // (a state from after the checkpoint must not be resumed – it is in `_before`)
     for (const ext of STATE_EXT) rmSync(statePath(stateDir, stateKey, AUTO_SLOT, ext), { force: true });
   }
-  return { save: !!info.save, state, meta: state ? info.meta || null : null, before: relative(runDir, before).split(sep).join('/') };
+  dropAfter(runDir, slot, rankOf(id));
+  return { save: !!info.save, state, meta: state ? info.meta || null : null, at: info.at, before: relative(runDir, before).split(sep).join('/') };
 }

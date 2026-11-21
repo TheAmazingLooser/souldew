@@ -4,15 +4,17 @@
 
 ## Unreleased
 
-- **Checkpoints – go back to the last one.** A new rule (board › Rules › Checkpoints, on for new runs): when every
-  player has their first Poké Balls, and again whenever everyone has one more badge, each computer keeps a copy of its
-  player's game – the in-game save and “where you left off” – and of the board. After a wipe (or any death you'd rather
-  undo), anyone presses “Back to …” on the board or in the “run is over” notice: every player's game goes back to that
-  moment, the linked Pokémon that died since are alive again, the catches since are undone, lives come back and a run
-  that ended goes on. A running game closes and starts again from the checkpoint by itself. The log keeps what
-  happened, and each computer keeps the game it replaced (the run folder's `checkpoints/_before`). The first checkpoint
-  needs “Nothing counts before your first Poké Balls”; badge checkpoints need games whose badges souldew reads. Everyone
-  in the run needs this version.
+- **Checkpoints – go back to the last one.** A new rule (board › Rules › Checkpoints, on for new runs): each computer
+  keeps a copy of its player's game – the in-game save and “where you left off” – and of the board the moment that
+  player gets their first Poké Balls and each new badge. Once everyone has one, it is a checkpoint. After a wipe (or
+  any death you'd rather undo), anyone presses “Back to …” on the board or in the “run is over” notice: every player's
+  game goes back to the moment *they* got there – a player who was ahead returns to just after their own badge, not to
+  where they were when the last of you got it. Each player's encounters and team on the board go back with them; a
+  linked Pokémon that fell after its player's moment is alive again, one that fell before stays dead (that game still
+  has it fainted). Catches since are undone, lives come back and a run that ended goes on. A running game closes and
+  starts again from the checkpoint by itself. The log keeps what happened, and each computer keeps the game it replaced
+  (the run folder's `checkpoints/_before`). The first checkpoint needs “Nothing counts before your first Poké Balls”;
+  badge checkpoints need games whose badges souldew reads. Everyone in the run needs this version.
 
 ## 3.1.0
 

@@ -236,7 +236,7 @@ export function BallsRule({ value, onChange, players: n = 1, disabled = false })
 export function CheckpointRule({ value, onChange, players: n = 1, disabled = false }) {
   const hint = n < 2
     ? t('rules.checkpointsHintSolo', 'souldew keeps a copy of your game when you get your first Poké Balls and with every badge. After a death or a blackout you can go back to the latest copy: the Pokémon that died since are alive again, the catches since are gone.')
-    : t('rules.checkpointsHint', 'When all of you have your first Poké Balls – and again whenever all of you have one more badge – every computer keeps a copy of its player’s game. Anyone can take the run back to the latest one: every game returns to that moment, the linked Pokémon that died since are alive again, and a run that ended goes on.');
+    : t('rules.checkpointsHint', 'Every computer keeps a copy of its player’s game the moment that player gets their first Poké Balls and each new badge. Once all of you have one, it’s a checkpoint. Anyone can take the run back to the latest one: each of you returns to the moment you yourself got there, the linked Pokémon that fell after that are alive again, and a run that ended goes on.');
   return html`<${RuleCheck} checked=${!!value} onChange=${(v) => !disabled && onChange(v)} disabled=${disabled}
     label=${t('rules.checkpoints', 'Checkpoints: go back to the last one')} hint=${hint} />`;
 }

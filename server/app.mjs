@@ -57,7 +57,7 @@ import { randomBytes } from 'node:crypto';
 import { syncTrophies } from './lib/trophies.mjs';
 import { checkImport, replaceSave, undoImport, lastImport, unzipSingleSave, readZipFiles, checkCtrImport, replaceCtrSave, undoCtrImport, ctrSaveArchives } from './lib/saveimport.mjs';
 import { listIntroSaves, introFor, introKeyFor, introKeyForLibrary, publicIntro, keepIntroSave, removeIntroSave, applyIntroSave, introState } from './lib/introsave.mjs';
-import { storeCheckpoint, listCheckpoints, checkpointDoc, restoreCheckpoint } from './lib/checkpoints.mjs';
+import { storeCheckpoint, storeCheckpointDoc, listCheckpoints, checkpointDoc, restoreCheckpoint } from './lib/checkpoints.mjs';
 import * as liveRuns from './lib/liveruns.mjs';
 import { createAccounts } from './lib/accounts/index.mjs';
 import { isPackagedBuild } from './lib/accounts/enttoken.mjs';
@@ -1599,9 +1599,13 @@ export function startServer({ port = 7373, host = '127.0.0.1', background = true
 
   // ---- checkpoints (shared/checkpoints.mjs, server/lib/checkpoints.mjs): this player's copy of their game -------------
   //   GET  /api/runs/:id/checkpoints                    what this computer keeps: [{ id, doc: { at }, slots: { slot: info } }]
-  //   GET  /api/runs/:id/checkpoints/:cp/doc            the run document's entries kept with it
-  //   POST /api/runs/:id/checkpoints/:cp/:slot          body { doc, meta, late } → keep a copy of the game as it is now
+  //   GET  /api/runs/:id/checkpoints/:cp/doc            the run document when everyone had reached it   POST: keep it
+  //                                                     (body { doc, keepFrom } – the first one stays)
+  //   POST /api/runs/:id/checkpoints/:cp/:slot          body { doc, meta, late, keepFrom } → keep a copy of the game as
+  //                                                     it is now, with the run document
+  //   GET  /api/runs/:id/checkpoints/:cp/:slot/doc      the run document kept with that copy (that player's moment)
   //   POST /api/runs/:id/checkpoints/:cp/:slot/restore  the game goes back to that copy (not while the player has it open)
+  //   keepFrom: the latest checkpoint's rank – copies below it go (shared/checkpoints.mjs rankOf)
   const checkpointTarget = (runId, slot) => {
     const t = importTarget(new URL(`http://localhost/?run=${runId}&slot=${slot}`));
     if (runMode(t.manifest) === 'together') throw httpError(409, 'Play together has no checkpoints', 'checkpointTogether');
@@ -1612,9 +1616,21 @@ export function startServer({ port = 7373, host = '127.0.0.1', background = true
     if (!readManifest(m[1])) throw httpError(404, 'Run not found', 'runNotFound');
     return listCheckpoints(runDir(m[1]));
   });
+  const keepFromOf = (body) => (Number.isInteger(body.keepFrom) && body.keepFrom >= 0 && body.keepFrom <= 24 ? body.keepFrom : null);
   route('GET', /^\/api\/runs\/([a-f0-9]{8})\/checkpoints\/([a-z0-9]{4,8})\/doc$/, (req, m) => {
     if (!readManifest(m[1])) throw httpError(404, 'Run not found', 'runNotFound');
     const d = checkpointDoc(runDir(m[1]), m[2]);
+    if (!d) throw httpError(404, 'This computer has no copy of that checkpoint', 'checkpointMissing');
+    return d;
+  });
+  route('POST', /^\/api\/runs\/([a-f0-9]{8})\/checkpoints\/([a-z0-9]{4,8})\/doc$/, async (req, m) => {
+    const body = await readBody(req);
+    if (!readManifest(m[1])) throw httpError(404, 'Run not found', 'runNotFound');
+    return storeCheckpointDoc({ runDir: runDir(m[1]), id: m[2], doc: body.doc, keepFrom: keepFromOf(body) });
+  });
+  route('GET', /^\/api\/runs\/([a-f0-9]{8})\/checkpoints\/([a-z0-9]{4,8})\/(p[1-5])\/doc$/, (req, m) => {
+    if (!readManifest(m[1])) throw httpError(404, 'Run not found', 'runNotFound');
+    const d = checkpointDoc(runDir(m[1]), m[2], m[3]);
     if (!d) throw httpError(404, 'This computer has no copy of that checkpoint', 'checkpointMissing');
     return d;
   });
@@ -1624,7 +1640,7 @@ export function startServer({ port = 7373, host = '127.0.0.1', background = true
     const doc = body.doc && typeof body.doc === 'object' && !Array.isArray(body.doc) ? body.doc : null;
     const meta = body.meta && typeof body.meta === 'object' && !Array.isArray(body.meta) ? body.meta : null;
     const info = storeCheckpoint({ runDir: runDir(m[1]), id: m[2], slot: m[3], savePath: t.path, archive: t.system === '3ds' ? t.archive() : null, saveRoot: t.saveRoot,
-      stateDir: STATE_DIR, stateKey: t.stateKey, doc, meta, late: !!body.late });
+      stateDir: STATE_DIR, stateKey: t.stateKey, doc, meta, late: !!body.late, keepFrom: keepFromOf(body) });
     console.log(`[checkpoints] run ${m[1]} ${m[3]}: kept ${m[2]} (${info.save ? 'save' : 'no save'}, ${info.state ? 'state' : 'no state'})`);
     return info;
   });
